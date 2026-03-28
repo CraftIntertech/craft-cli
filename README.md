@@ -287,6 +287,10 @@ Token ถูกเก็บที่ `~/.config/craft/config.json` (chmod 600)
 ## Update
 
 ```bash
+# เช็ค version ปัจจุบัน + เทียบกับ latest
+craft version
+
+# อัปเดตเป็นเวอร์ชันล่าสุด
 craft update
 ```
 

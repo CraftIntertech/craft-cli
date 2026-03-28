@@ -103,10 +103,13 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo ""
 fi
 
+# --- Read version ---
+VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "unknown")
+
 # --- Done ---
 echo ""
 printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-printf "${GREEN}  craft-cli installed successfully!${NC}\n"
+printf "${GREEN}  craft-cli v${VERSION} installed!${NC}\n"
 printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 echo ""
 echo "  Get started:"
@@ -114,4 +117,10 @@ echo ""
 printf "    ${CYAN}craft --help${NC}              # See all commands\n"
 printf "    ${CYAN}craft login <token>${NC}      # Authenticate\n"
 printf "    ${CYAN}craft vm list${NC}             # List your VMs\n"
+echo ""
+echo "  Manage:"
+echo ""
+printf "    ${CYAN}craft version${NC}             # Check version & updates\n"
+printf "    ${CYAN}craft update${NC}              # Update to latest\n"
+printf "    ${CYAN}craft uninstall${NC}           # Remove craft-cli\n"
 echo ""

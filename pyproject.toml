@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "craft-cli"
-version = "1.0.0"
+dynamic = ["version"]
 description = "CLI for CraftIntertech cloud platform"
 requires-python = ">=3.8"
 dependencies = [
@@ -15,3 +15,6 @@ dependencies = [
 
 [project.scripts]
 craft = "craft.cli:cli"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}

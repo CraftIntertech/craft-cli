@@ -340,17 +340,78 @@ def update():
         click.echo("Reinstall with: curl -fsSL https://raw.githubusercontent.com/CraftIntertech/craft-cli/main/install.sh | bash", err=True)
         sys.exit(1)
 
-    click.echo("Updating craft-cli...")
+    old_version = __version__
+    click.echo(f"Current version: {old_version}")
+    click.echo("Checking for updates...")
+
     try:
-        subprocess.run(["git", "-C", str(install_dir), "fetch", "origin", "main"], check=True, capture_output=True)
-        subprocess.run(["git", "-C", str(install_dir), "reset", "--hard", "origin/main"], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(install_dir), "fetch", "origin", "main"],
+            check=True, capture_output=True,
+        )
+
+        # Read remote VERSION before reset
+        result = subprocess.run(
+            ["git", "-C", str(install_dir), "show", "origin/main:VERSION"],
+            check=True, capture_output=True, text=True,
+        )
+        new_version = result.stdout.strip()
+
+        if new_version == old_version:
+            click.echo(click.style(f"Already up to date (v{old_version}).", fg="green"))
+            return
+
+        click.echo(f"New version available: {old_version} → {new_version}")
+
+        subprocess.run(
+            ["git", "-C", str(install_dir), "reset", "--hard", "origin/main"],
+            check=True, capture_output=True,
+        )
+
         venv_pip = install_dir / ".venv" / "bin" / "pip"
         if venv_pip.exists():
-            subprocess.run([str(venv_pip), "install", "-e", str(install_dir), "-q"], check=True, capture_output=True)
-        click.echo(click.style("Updated to latest version.", fg="green"))
+            subprocess.run(
+                [str(venv_pip), "install", "-e", str(install_dir), "-q"],
+                check=True, capture_output=True,
+            )
+
+        click.echo(click.style(f"Updated: v{old_version} → v{new_version}", fg="green"))
+
     except subprocess.CalledProcessError as e:
         click.echo(f"Error: Update failed — {e}", err=True)
         sys.exit(1)
+
+
+# --- Version ---
+@cli.command("version")
+def version_cmd():
+    """Show version and check for updates."""
+    click.echo(f"craft-cli v{__version__}")
+
+    install_dir = Path.home() / ".local" / "share" / "craft-cli"
+    if not install_dir.exists():
+        return
+
+    try:
+        subprocess.run(
+            ["git", "-C", str(install_dir), "fetch", "origin", "main"],
+            check=True, capture_output=True, timeout=10,
+        )
+        result = subprocess.run(
+            ["git", "-C", str(install_dir), "show", "origin/main:VERSION"],
+            check=True, capture_output=True, text=True, timeout=5,
+        )
+        remote_version = result.stdout.strip()
+
+        if remote_version != __version__:
+            click.echo(click.style(
+                f"Update available: v{__version__} → v{remote_version}  (run: craft update)",
+                fg="yellow",
+            ))
+        else:
+            click.echo(click.style("Up to date.", fg="green"))
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        click.echo("Could not check for updates.")
 
 
 # --- Uninstall ---

@@ -1,0 +1,1115 @@
+{
+  "info": {
+    "name": "CraftIntertech API",
+    "description": "Complete API documentation for CraftIntertech cloud platform.\n\n## Authentication\nUse either:\n- **Bearer Token**: `Authorization: Bearer <JWT>` (from /auth/login)\n- **API Key**: `Authorization: Bearer cit_<key>` (from /api-keys)\n\n## Base URL\n`https://craftintertech.co.th/api/v1`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://craftintertech.co.th/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "vmId", "value": "" },
+    { "key": "hostingId", "value": "" },
+    { "key": "ticketId", "value": "" },
+    { "key": "snapId", "value": "" },
+    { "key": "sshKeyId", "value": "" },
+    { "key": "apiKeyId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Obtain and manage access tokens.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"mypassword123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+66123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"ACME Inc\",\n  \"referralCode\": \"ABC123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new user account.\n\n**Rate limit:** 50 per hour per IP\n\n**Body:**\n- `email` (required) — valid email\n- `password` (required) — min 8 chars\n- `firstName` (required) — min 1 char\n- `lastName` (required) — min 1 char\n- `phone` (required) — min 9 chars\n- `address` (optional)\n- `company` (optional)\n- `turnstileToken` (optional) — Cloudflare Turnstile\n- `referralCode` (optional) — signup bonus"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"mypassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Log in with email and password. If 2FA is enabled, returns `requires2FA: true` with a `tempToken`.\n\n**Rate limit:** 50 per 15 minutes per IP\n\n**Response:**\n```json\n{\n  \"accessToken\": \"eyJ...\",\n  \"refreshToken\": \"...\",\n  \"user\": { \"id\", \"email\", \"firstName\", \"lastName\", \"role\" }\n}\n```"
+          }
+        },
+        {
+          "name": "Verify 2FA",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/auth/verify-2fa", "host": ["{{baseUrl}}"], "path": ["auth", "verify-2fa"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tempToken\": \"temp_token_from_login\",\n  \"code\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Complete login when 2FA is enabled.\n\n**Rate limit:** 50 per minute per IP\n\n**Body:**\n- `tempToken` (required) — from login response\n- `code` (required) — exactly 6 digits from authenticator app"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Exchange a refresh token for new access + refresh tokens."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Invalidate current session. Optionally revoke refresh token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "description": "Read and update the authenticated user's profile.",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] },
+            "description": "Get current user's profile.\n\n**Response:**\n`{ id, email, firstName, lastName, phone, address, company, role, isVerified, twoFactorEnabled, createdAt }`"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+66123456789\",\n  \"address\": \"456 Road\",\n  \"company\": \"NewCo\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update profile fields. All fields are optional — only provided fields are updated."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/me/password", "host": ["{{baseUrl}}"], "path": ["me", "password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"oldpassword\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Change account password. Requires current password.\n\n**Body:**\n- `currentPassword` (required)\n- `newPassword` (required) — min 8 chars"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Virtual Machines",
+      "description": "Create, manage, and control VPS instances.",
+      "item": [
+        {
+          "name": "List VMs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vms?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["vms"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default: 10, max: 50)" }
+              ]
+            },
+            "description": "List all VMs for the authenticated user with pagination."
+          }
+        },
+        {
+          "name": "Get VM",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}"] },
+            "description": "Get full details of a VM including IP, gateway, DNS, OS, plan and node info."
+          }
+        },
+        {
+          "name": "Create VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms", "host": ["{{baseUrl}}"], "path": ["vms"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"my-server\",\n  \"hostname\": \"my-server.example.com\",\n  \"nodeId\": \"uuid\",\n  \"osTemplateId\": \"uuid\",\n  \"planId\": \"uuid\",\n  \"billingType\": \"monthly\",\n  \"rootPassword\": \"securepassword123\",\n  \"sshKeys\": \"key-id-1,key-id-2\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new VM. Wallet is charged upfront.\n\n**Rate limit:** 50 per hour per user\n\n**Body:**\n- `name` (required) — 1-50 chars, alphanumeric/dashes/underscores\n- `hostname` (required) — valid RFC-1123 hostname, max 253 chars\n- `nodeId` (required) — UUID\n- `osTemplateId` (required) — UUID\n- `rootPassword` (required) — min 8 chars\n- `planId` (optional) — UUID, use predefined plan\n- `billingType` (optional) — daily/weekly/monthly/yearly, default: daily\n- `cpu` (optional) — 1-32, custom cores\n- `ramMb` (optional) — 512-131072\n- `diskGb` (optional) — 10-2000\n- `sshKeys` (optional) — comma-separated key IDs"
+          }
+        },
+        {
+          "name": "Delete VM",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}"] },
+            "description": "Delete VM permanently. All data and snapshots will be destroyed."
+          }
+        },
+        {
+          "name": "Get VM Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/status", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "status"] },
+            "description": "Get real-time VM status from hypervisor."
+          }
+        },
+        {
+          "name": "Start VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/start", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "start"] },
+            "description": "Power on the VM."
+          }
+        },
+        {
+          "name": "Stop VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/stop", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "stop"] },
+            "description": "Gracefully shut down the VM via ACPI."
+          }
+        },
+        {
+          "name": "Reboot VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/reboot", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "reboot"] },
+            "description": "Reboot the VM."
+          }
+        },
+        {
+          "name": "Rename VM",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rename", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rename"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"new-name\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Rename VM display name.\n\n**Body:**\n- `name` (required) — 1-50 chars, alphanumeric/dashes/underscores"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "reset-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"root\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Reset root/user password via QEMU Guest Agent.\n\n**Rate limit:** 50 per 15 minutes per user\n\n**Body:**\n- `username` (optional) — default: \"root\"\n- `newPassword` (required) — min 8 chars"
+          }
+        },
+        {
+          "name": "Reset Network",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/reset-network", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "reset-network"] },
+            "description": "Re-apply VM network config. Reboot afterwards."
+          }
+        },
+        {
+          "name": "Resize VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/resize", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "resize"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"target-plan-uuid\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Resize VM to a new plan. Disk can only grow."
+          }
+        },
+        {
+          "name": "Reinstall OS",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/reinstall", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "reinstall"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"osTemplateId\": \"os-template-uuid\",\n  \"rootPassword\": \"newpassword123\",\n  \"sshKeys\": \"key-id-1\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Reinstall OS. WARNING: All data destroyed.\n\n**Body:**\n- `osTemplateId` (required) — UUID\n- `rootPassword` (required) — min 8 chars\n- `sshKeys` (optional) — comma-separated key IDs"
+          }
+        },
+        {
+          "name": "Get Console",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/console", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "console"] },
+            "description": "Get noVNC console ticket.\n\n**Response:** `{ ticket, port, sessionToken }`"
+          }
+        },
+        {
+          "name": "Get Network",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/network", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "network"] },
+            "description": "Get VM network interface MAC address."
+          }
+        },
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vms/{{vmId}}/metrics?hours=24",
+              "host": ["{{baseUrl}}"],
+              "path": ["vms", "{{vmId}}", "metrics"],
+              "query": [{ "key": "hours", "value": "24", "description": "1-168 (7 days), default: 24" }]
+            },
+            "description": "Get time-series performance metrics (CPU, memory, disk I/O, network)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Firewall",
+      "description": "Manage firewall rules at the Proxmox hypervisor level.",
+      "item": [
+        {
+          "name": "Get Firewall Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/firewall", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "firewall"] },
+            "description": "Get all firewall rules and options for the VM."
+          }
+        },
+        {
+          "name": "Add Firewall Rule",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/firewall", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "firewall"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"in\",\n  \"action\": \"ACCEPT\",\n  \"proto\": \"tcp\",\n  \"dport\": \"80,443\",\n  \"source\": \"0.0.0.0/0\",\n  \"comment\": \"Allow HTTP/HTTPS\",\n  \"enable\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Add a new firewall rule.\n\n**Body:**\n- `type` (required) — \"in\" or \"out\"\n- `action` (required) — \"ACCEPT\", \"DROP\", or \"REJECT\"\n- `proto` (optional) — \"tcp\", \"udp\", \"icmp\"\n- `dport` (optional) — port or range, e.g. \"80\" or \"8000:9000\"\n- `sport` (optional) — source port\n- `source` (optional) — CIDR, e.g. \"10.0.0.0/8\"\n- `dest` (optional) — destination CIDR\n- `comment` (optional) — max 255 chars\n- `enable` (optional) — 0 or 1, default: 1"
+          }
+        },
+        {
+          "name": "Delete Firewall Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/firewall/0", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "firewall", "0"] },
+            "description": "Remove a firewall rule by position index (0-based)."
+          }
+        },
+        {
+          "name": "Update Firewall Options",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/firewall/options", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "firewall", "options"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enable\": 1,\n  \"policy_in\": \"DROP\",\n  \"policy_out\": \"ACCEPT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update firewall global settings.\n\n**Body:**\n- `enable` (optional) — 0 (off) or 1 (on)\n- `policy_in` (optional) — ACCEPT, DROP, REJECT\n- `policy_out` (optional) — ACCEPT, DROP, REJECT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Snapshots",
+      "description": "Create point-in-time snapshots for backup and recovery. Max 5 per VM.",
+      "item": [
+        {
+          "name": "List Snapshots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/snapshots", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "snapshots"] },
+            "description": "List all snapshots for a VM."
+          }
+        },
+        {
+          "name": "Create Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/snapshots", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "snapshots"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Before upgrade\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new snapshot. Max 5 per VM.\n\n**Body:**\n- `description` (optional) — max 200 chars"
+          }
+        },
+        {
+          "name": "Delete Snapshot",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/snapshots/{{snapId}}", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "snapshots", "{{snapId}}"] },
+            "description": "Delete a snapshot permanently."
+          }
+        },
+        {
+          "name": "Rollback Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/snapshots/{{snapId}}/rollback", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "snapshots", "{{snapId}}", "rollback"] },
+            "description": "Rollback VM to a previous snapshot. WARNING: Current state will be lost."
+          }
+        },
+        {
+          "name": "Sync Snapshots",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/snapshots/sync", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "snapshots", "sync"] },
+            "description": "Synchronize snapshot records with the hypervisor."
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Reverse DNS",
+      "description": "Manage PTR (rDNS) records for VM IP addresses.",
+      "item": [
+        {
+          "name": "Get rDNS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rdns", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rdns"] },
+            "description": "Get the current reverse DNS record."
+          }
+        },
+        {
+          "name": "Set rDNS",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rdns", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rdns"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hostname\": \"mail.example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Set or update the reverse DNS hostname.\n\n**Body:**\n- `hostname` (required) — valid FQDN, max 253 chars"
+          }
+        },
+        {
+          "name": "Delete rDNS",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rdns", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rdns"] },
+            "description": "Remove the reverse DNS record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Rescue Mode",
+      "description": "Boot into a rescue environment for troubleshooting.",
+      "item": [
+        {
+          "name": "Enable Rescue Mode",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rescue/enable", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rescue", "enable"] },
+            "description": "Enable rescue mode. VM boots into rescue OS on next start."
+          }
+        },
+        {
+          "name": "Disable Rescue Mode",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/rescue/disable", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "rescue", "disable"] },
+            "description": "Disable rescue mode. VM boots normally on next start."
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Guest Agent",
+      "description": "Interact with QEMU Guest Agent inside the VM.",
+      "item": [
+        {
+          "name": "Enable Agent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/agent/enable", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "agent", "enable"] },
+            "description": "Enable QEMU Guest Agent channel. Reboot VM afterwards."
+          }
+        },
+        {
+          "name": "Get Agent Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/agent/info", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "agent", "info"] },
+            "description": "Get info from guest agent — hostname, OS, timezone, network, filesystems, users."
+          }
+        },
+        {
+          "name": "FS Trim",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/agent/fstrim", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "agent", "fstrim"] },
+            "description": "Trigger filesystem TRIM to reclaim unused disk blocks."
+          }
+        }
+      ]
+    },
+    {
+      "name": "VM Billing",
+      "description": "Manage billing cycles and auto-renewal. All billing is prepaid.",
+      "item": [
+        {
+          "name": "Get Billing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/billing", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "billing"] },
+            "description": "Get current billing status and renewal pricing."
+          }
+        },
+        {
+          "name": "Renew VM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/renew", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "renew"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingType\": \"monthly\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Renew VM for another billing period. Wallet charged immediately.\n\n**Body:**\n- `billingType` (required) — daily/weekly/monthly/yearly"
+          }
+        },
+        {
+          "name": "Toggle Auto-Renew",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/vms/{{vmId}}/auto-renew", "host": ["{{baseUrl}}"], "path": ["vms", "{{vmId}}", "auto-renew"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoRenew\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Enable or disable automatic renewal.\n\n**Body:**\n- `autoRenew` (required) — boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Web Hosting",
+      "description": "Create and manage shared hosting accounts powered by DirectAdmin.",
+      "item": [
+        {
+          "name": "List Hosting Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/plans", "host": ["{{baseUrl}}"], "path": ["hosting", "plans"] },
+            "description": "List available hosting plans with specs and pricing."
+          }
+        },
+        {
+          "name": "List Hosting Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/nodes", "host": ["{{baseUrl}}"], "path": ["hosting", "nodes"] },
+            "description": "List available hosting nodes (servers)."
+          }
+        },
+        {
+          "name": "List Hosting Accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hosting?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["hosting"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List all hosting accounts with pagination."
+          }
+        },
+        {
+          "name": "Get Hosting Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}"] },
+            "description": "Get full details including resource usage from DirectAdmin."
+          }
+        },
+        {
+          "name": "Create Hosting Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting", "host": ["{{baseUrl}}"], "path": ["hosting"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mysite\",\n  \"domain\": \"example.com\",\n  \"nodeId\": \"node-uuid\",\n  \"planId\": \"plan-uuid\",\n  \"billingType\": \"monthly\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new hosting account. DirectAdmin user provisioned automatically.\n\n**Rate limit:** 50 per hour per user\n\n**Body:**\n- `name` (required) — 1-50 chars\n- `domain` (required) — valid domain, max 253 chars\n- `nodeId` (required) — UUID\n- `planId` (required) — UUID\n- `billingType` (optional) — daily/weekly/monthly/yearly, default: monthly"
+          }
+        },
+        {
+          "name": "Delete Hosting Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}"] },
+            "description": "Delete hosting account. DirectAdmin user and all data permanently removed."
+          }
+        },
+        {
+          "name": "Get Login URL (SSO)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}/login-url", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}", "login-url"] },
+            "description": "Generate one-time SSO login URL for DirectAdmin panel. Expires in 30 minutes."
+          }
+        },
+        {
+          "name": "Get Hosting Billing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}/billing", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}", "billing"] },
+            "description": "Get current billing status and renewal pricing."
+          }
+        },
+        {
+          "name": "Renew Hosting",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}/renew", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}", "renew"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingType\": \"monthly\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Renew hosting for another period. Wallet charged immediately."
+          }
+        },
+        {
+          "name": "Toggle Hosting Auto-Renew",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/hosting/{{hostingId}}/auto-renew", "host": ["{{baseUrl}}"], "path": ["hosting", "{{hostingId}}", "auto-renew"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Toggle automatic renewal.\n\n**Body:**\n- `enabled` (required) — boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "description": "Check balance, view transactions, and submit top-ups.",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/wallet", "host": ["{{baseUrl}}"], "path": ["wallet"] },
+            "description": "Get current wallet balance and currency."
+          }
+        },
+        {
+          "name": "List Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet/transactions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["wallet", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20", "description": "max 100" }
+              ]
+            },
+            "description": "List wallet transactions with pagination. Most recent first."
+          }
+        },
+        {
+          "name": "Submit Top-up",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/wallet/topup", "host": ["{{baseUrl}}"], "path": ["wallet", "topup"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"reference\": \"BANK-REF-12345\",\n  \"note\": \"PromptPay transfer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Submit a top-up request. Status is 'pending' until admin approval.\n\n**Rate limit:** 50 per hour per user\n\n**Body:**\n- `amount` (required) — positive number, max 100,000\n- `reference` (required) — bank transfer ref\n- `note` (optional)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SSH Keys",
+      "description": "Store SSH public keys for VM injection.",
+      "item": [
+        {
+          "name": "List SSH Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ssh-keys", "host": ["{{baseUrl}}"], "path": ["ssh-keys"] },
+            "description": "List all saved SSH public keys."
+          }
+        },
+        {
+          "name": "Add SSH Key",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ssh-keys", "host": ["{{baseUrl}}"], "path": ["ssh-keys"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Laptop\",\n  \"publicKey\": \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Add a new SSH public key.\n\n**Body:**\n- `name` (required) — 1-100 chars\n- `publicKey` (required) — OpenSSH format, 20-8192 chars"
+          }
+        },
+        {
+          "name": "Delete SSH Key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ssh-keys/{{sshKeyId}}", "host": ["{{baseUrl}}"], "path": ["ssh-keys", "{{sshKeyId}}"] },
+            "description": "Remove a saved SSH key. Existing VMs not affected."
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "description": "Create and manage programmatic API keys. Max 20 active.",
+      "item": [
+        {
+          "name": "List API Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-keys", "host": ["{{baseUrl}}"], "path": ["api-keys"] },
+            "description": "List all API keys. Full key value is never returned."
+          }
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-keys", "host": ["{{baseUrl}}"], "path": ["api-keys"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CI/CD Pipeline\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new API key. The full key (cit_...) is returned ONCE.\n\n**Body:**\n- `name` (required) — 1-100 chars"
+          }
+        },
+        {
+          "name": "Revoke API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-keys/{{apiKeyId}}", "host": ["{{baseUrl}}"], "path": ["api-keys", "{{apiKeyId}}"] },
+            "description": "Revoke an API key permanently."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security (2FA)",
+      "description": "Set up and manage TOTP two-factor authentication.",
+      "item": [
+        {
+          "name": "Check 2FA Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/security/2fa", "host": ["{{baseUrl}}"], "path": ["security", "2fa"] },
+            "description": "Check whether 2FA is enabled."
+          }
+        },
+        {
+          "name": "Setup 2FA",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/security/2fa/setup", "host": ["{{baseUrl}}"], "path": ["security", "2fa", "setup"] },
+            "description": "Initialize 2FA setup. Returns TOTP secret and otpauth:// URL for QR code."
+          }
+        },
+        {
+          "name": "Verify 2FA Setup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/security/2fa/verify", "host": ["{{baseUrl}}"], "path": ["security", "2fa", "verify"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Verify first TOTP code to activate 2FA.\n\n**Body:**\n- `code` (required) — exactly 6 digits"
+          }
+        },
+        {
+          "name": "Disable 2FA",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/security/2fa/disable", "host": ["{{baseUrl}}"], "path": ["security", "2fa", "disable"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Disable 2FA. Requires valid TOTP code.\n\n**Body:**\n- `code` (required) — exactly 6 digits"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support Tickets",
+      "description": "Create and manage support tickets.",
+      "item": [
+        {
+          "name": "List Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tickets", "host": ["{{baseUrl}}"], "path": ["tickets"] },
+            "description": "List all support tickets."
+          }
+        },
+        {
+          "name": "Get Ticket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}"] },
+            "description": "Get ticket with full message history."
+          }
+        },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tickets", "host": ["{{baseUrl}}"], "path": ["tickets"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"VM not responding\",\n  \"body\": \"My VM has been unresponsive since 10:00 AM. I've tried rebooting but it still doesn't respond.\",\n  \"vmId\": \"optional-vm-uuid\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new support ticket.\n\n**Body:**\n- `subject` (required) — 1-255 chars\n- `body` (required) — 1-10,000 chars\n- `vmId` (optional) — UUID, link to a VM"
+          }
+        },
+        {
+          "name": "Reply to Ticket",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/messages", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "messages"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Thanks for the help. The issue is now resolved.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Reply to a ticket. Cannot reply to closed tickets.\n\n**Body:**\n- `body` (required) — 1-10,000 chars"
+          }
+        },
+        {
+          "name": "Close Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/close", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "close"] },
+            "description": "Close a support ticket."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Referral Program",
+      "description": "Share referral code and earn wallet credits.",
+      "item": [
+        {
+          "name": "Get My Referral",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/referral", "host": ["{{baseUrl}}"], "path": ["referral"] },
+            "description": "Get your referral code. Auto-created on first access."
+          }
+        },
+        {
+          "name": "Get Referral Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/referral/stats", "host": ["{{baseUrl}}"], "path": ["referral", "stats"] },
+            "description": "Get detailed referral statistics and earnings."
+          }
+        },
+        {
+          "name": "Validate Referral Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/referral/check/ABC123", "host": ["{{baseUrl}}"], "path": ["referral", "check", "ABC123"] },
+            "description": "Validate a referral code and check signup bonus. No auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity Logs",
+      "description": "View chronological log of all account actions.",
+      "item": [
+        {
+          "name": "Get Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/activity?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["activity"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20", "description": "max 50" }
+              ]
+            },
+            "description": "Get activity log for authenticated user. Most recent first."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nodes",
+      "description": "List infrastructure nodes and hardware info.",
+      "item": [
+        {
+          "name": "List Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/nodes", "host": ["{{baseUrl}}"], "path": ["nodes"] },
+            "description": "List all available nodes for VM deployment."
+          }
+        },
+        {
+          "name": "Get Node Hardware",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/nodes/{{nodeId}}/hardware", "host": ["{{baseUrl}}"], "path": ["nodes", "{{nodeId}}", "hardware"] },
+            "description": "Get hardware info for a node. Cached 5 minutes.\n\n**Response:** `{ cpuModel, cpuCores, cpuSockets, memTotalGb, pveVersion }`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plans & OS Templates",
+      "description": "Retrieve available VM plans, OS templates, and public catalogs.",
+      "item": [
+        {
+          "name": "List VM Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["plans"],
+              "query": [
+                { "key": "nodeId", "value": "", "description": "Filter by node UUID (optional)", "disabled": true }
+              ]
+            },
+            "description": "List all VM plans with per-node pricing. Optionally filter by node."
+          }
+        },
+        {
+          "name": "List OS Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/os-templates", "host": ["{{baseUrl}}"], "path": ["os-templates"] },
+            "description": "List all available OS templates with minimum hardware requirements."
+          }
+        },
+        {
+          "name": "List Dedicated Plans (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/dedicated-plans", "host": ["{{baseUrl}}"], "path": ["dedicated-plans"] },
+            "description": "List active dedicated server plans. No auth required."
+          }
+        },
+        {
+          "name": "List Colocation Plans (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/colocation-plans", "host": ["{{baseUrl}}"], "path": ["colocation-plans"] },
+            "description": "List active colocation plans with features. No auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Status (Public)",
+      "description": "Check platform status. No authentication required.",
+      "item": [
+        {
+          "name": "Get System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/system/status", "host": ["{{baseUrl}}"], "path": ["system", "status"] },
+            "description": "Get system status, lockdown state, and active announcements."
+          }
+        },
+        {
+          "name": "Get Public Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/system/plans", "host": ["{{baseUrl}}"], "path": ["system", "plans"] },
+            "description": "Simplified list of VPS plans for marketing pages."
+          }
+        },
+        {
+          "name": "Get Public Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/system/nodes", "host": ["{{baseUrl}}"], "path": ["system", "nodes"] },
+            "description": "Simplified list of nodes for marketing pages."
+          }
+        }
+      ]
+    }
+  ]
+}

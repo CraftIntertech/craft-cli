@@ -284,10 +284,16 @@ craft login eyJhbGciOi...
 
 Token ถูกเก็บที่ `~/.config/craft/config.json` (chmod 600)
 
+## Update
+
+```bash
+craft update
+```
+
 ## Uninstall
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/CraftIntertech/craft-cli/main/uninstall.sh | bash
+craft uninstall
 ```
 
 หรือถ้าติดตั้งด้วย pip:

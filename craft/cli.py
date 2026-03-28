@@ -1,3 +1,9 @@
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
 import click
 
 from craft import __version__
@@ -322,3 +328,58 @@ system.add_command(system_nodes)
 
 # --- Activity ---
 cli.add_command(activity_list, "activity")
+
+
+# --- Update ---
+@cli.command()
+def update():
+    """Update craft-cli to the latest version."""
+    install_dir = Path.home() / ".local" / "share" / "craft-cli"
+    if not install_dir.exists():
+        click.echo("Error: Installation not found at ~/.local/share/craft-cli", err=True)
+        click.echo("Reinstall with: curl -fsSL https://raw.githubusercontent.com/CraftIntertech/craft-cli/main/install.sh | bash", err=True)
+        sys.exit(1)
+
+    click.echo("Updating craft-cli...")
+    try:
+        subprocess.run(["git", "-C", str(install_dir), "fetch", "origin", "main"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(install_dir), "reset", "--hard", "origin/main"], check=True, capture_output=True)
+        venv_pip = install_dir / ".venv" / "bin" / "pip"
+        if venv_pip.exists():
+            subprocess.run([str(venv_pip), "install", "-e", str(install_dir), "-q"], check=True, capture_output=True)
+        click.echo(click.style("Updated to latest version.", fg="green"))
+    except subprocess.CalledProcessError as e:
+        click.echo(f"Error: Update failed — {e}", err=True)
+        sys.exit(1)
+
+
+# --- Uninstall ---
+@cli.command()
+def uninstall():
+    """Remove craft-cli from this machine."""
+    install_dir = Path.home() / ".local" / "share" / "craft-cli"
+    bin_file = Path.home() / ".local" / "bin" / "craft"
+    config_dir = Path.home() / ".config" / "craft"
+
+    click.echo("This will remove:")
+    click.echo(f"  - {install_dir}")
+    click.echo(f"  - {bin_file}")
+    if not click.confirm("\nContinue?", default=False):
+        click.echo("Cancelled.")
+        return
+
+    if bin_file.exists():
+        bin_file.unlink()
+        click.echo(f"  Removed {bin_file}")
+    if install_dir.exists():
+        shutil.rmtree(install_dir)
+        click.echo(f"  Removed {install_dir}")
+
+    if config_dir.exists():
+        if click.confirm(f"\nAlso remove config ({config_dir})?", default=False):
+            shutil.rmtree(config_dir)
+            click.echo(f"  Removed {config_dir}")
+        else:
+            click.echo(f"  Config kept at {config_dir}")
+
+    click.echo(click.style("\ncraft-cli uninstalled.", fg="green"))

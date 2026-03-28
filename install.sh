@@ -53,14 +53,15 @@ if ! command -v git &>/dev/null; then
 fi
 
 # --- Clone or update ---
+BRANCH="main"
 if [ -d "$INSTALL_DIR" ]; then
     info "Updating existing installation..."
-    git -C "$INSTALL_DIR" pull --ff-only origin main 2>/dev/null || \
-    git -C "$INSTALL_DIR" pull --ff-only 2>/dev/null || \
-    (warn "Pull failed, re-cloning..." && rm -rf "$INSTALL_DIR" && git clone "$REPO_URL" "$INSTALL_DIR")
+    git -C "$INSTALL_DIR" fetch origin "$BRANCH" 2>/dev/null && \
+    git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" 2>/dev/null || \
+    (warn "Update failed, re-cloning..." && rm -rf "$INSTALL_DIR" && git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR")
 else
     info "Downloading craft-cli..."
-    git clone "$REPO_URL" "$INSTALL_DIR"
+    git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
 fi
 ok "Source ready at $INSTALL_DIR"
 

@@ -4,7 +4,7 @@ set -euo pipefail
 APP_NAME="craft"
 BIN_DIR="$HOME/.local/bin"
 REPO="CraftIntertech/craft-cli"
-API_URL="https://api.github.com/repos/$REPO/releases/latest"
+REPO_URL="https://github.com/$REPO.git"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -25,7 +25,7 @@ ARCH="$(uname -m)"
 case "$OS" in
     linux)  OS="linux" ;;
     darwin) OS="darwin" ;;
-    *)      fail "Unsupported OS: $OS. Download manually from https://github.com/$REPO/releases" ;;
+    *)      fail "Unsupported OS: $OS" ;;
 esac
 
 case "$ARCH" in
@@ -37,58 +37,77 @@ esac
 BINARY="craft-${OS}-${ARCH}"
 info "Detected platform: ${OS}/${ARCH}"
 
-# --- Check for curl ---
+# --- Check tools ---
 if ! command -v curl &>/dev/null; then
-    fail "curl is required. Install it with: sudo apt install curl"
+    fail "curl is required. Install: sudo apt install curl"
 fi
 
-# --- Get latest release version ---
+# --- Get version ---
 info "Checking latest version..."
-VERSION=$(curl -fsSL "$API_URL" 2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/')
-
+VERSION=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null || echo "")
 if [ -z "$VERSION" ]; then
-    VERSION=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null || echo "")
-    if [ -z "$VERSION" ]; then
-        fail "Could not determine latest version"
-    fi
+    fail "Could not determine latest version"
 fi
-
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/${BINARY}"
 info "Latest version: v${VERSION}"
 
-# --- Download binary ---
+# --- Prepare ---
 mkdir -p "$BIN_DIR"
 TARGET="$BIN_DIR/$APP_NAME"
+INSTALLED=false
 
-info "Downloading ${BINARY}..."
+# --- Try 1: Download pre-built binary from GitHub Release ---
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/${BINARY}"
+info "Trying to download pre-built binary..."
 if curl -fsSL "$DOWNLOAD_URL" -o "$TARGET" 2>/dev/null; then
     chmod +x "$TARGET"
-    ok "Downloaded craft binary"
+    ok "Downloaded pre-built binary"
+    INSTALLED=true
 else
-    warn "Release binary not found, building from source..."
+    warn "No pre-built binary available (release not published yet)"
+fi
 
+# --- Try 2: Build from source ---
+if [ "$INSTALLED" = false ]; then
     if ! command -v go &>/dev/null; then
-        fail "Go is required to build from source. Install from https://go.dev/dl/ or download binary from https://github.com/$REPO/releases"
+        if ! command -v git &>/dev/null; then
+            fail "No pre-built binary available and neither Go nor git is installed.\nInstall Go from https://go.dev/dl/ or wait for a release at https://github.com/$REPO/releases"
+        fi
+        fail "No pre-built binary available. Install Go to build from source: https://go.dev/dl/"
     fi
 
+    if ! command -v git &>/dev/null; then
+        fail "git is required to build from source. Install: sudo apt install git"
+    fi
+
+    info "Building from source (requires Go)..."
     TMPDIR=$(mktemp -d)
     trap "rm -rf $TMPDIR" EXIT
-    info "Cloning repository..."
-    git clone -q --depth 1 "https://github.com/$REPO.git" "$TMPDIR/craft-cli"
-    info "Building..."
+
+    git clone -q --depth 1 "$REPO_URL" "$TMPDIR/craft-cli"
+    info "Compiling..."
     cd "$TMPDIR/craft-cli"
     go build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
     chmod +x "$TARGET"
     ok "Built from source"
+    INSTALLED=true
+fi
+
+if [ "$INSTALLED" = false ]; then
+    fail "Installation failed"
+fi
+
+# --- Verify binary works ---
+if ! "$TARGET" version &>/dev/null; then
+    fail "Binary installed but does not execute. Check your platform."
 fi
 
 # --- Remove old Python installation if present ---
 OLD_INSTALL="$HOME/.local/share/craft-cli"
 if [ -d "$OLD_INSTALL/.venv" ]; then
     warn "Found old Python installation at $OLD_INSTALL"
-    read -p "  Remove it? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    printf "  Remove it? [y/N] "
+    read -r REPLY
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
         rm -rf "$OLD_INSTALL"
         ok "Removed old Python installation"
     fi
@@ -98,13 +117,11 @@ fi
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     warn "$BIN_DIR is not in your PATH"
     echo ""
-    echo "  Add this line to your ~/.bashrc or ~/.zshrc:"
+    echo "  Add to ~/.bashrc or ~/.zshrc:"
     echo ""
     printf "    ${CYAN}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}\n"
     echo ""
-    echo "  Then reload your shell:"
-    echo ""
-    printf "    ${CYAN}source ~/.bashrc${NC}\n"
+    printf "  Then: ${CYAN}source ~/.bashrc${NC}\n"
     echo ""
 fi
 
@@ -116,14 +133,9 @@ printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "  No Python required — single binary!"
 echo ""
-echo "  Get started:"
-echo ""
 printf "    ${CYAN}craft --help${NC}              # See all commands\n"
 printf "    ${CYAN}craft login <token>${NC}      # Authenticate\n"
 printf "    ${CYAN}craft vm list${NC}             # List your VMs\n"
 echo ""
-echo "  Manage:"
-echo ""
-printf "    ${CYAN}craft version${NC}             # Check version\n"
 printf "    ${CYAN}craft update${NC}              # Update to latest\n"
 echo ""

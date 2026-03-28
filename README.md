@@ -41,14 +41,8 @@ pip install .
 ## Quick Start
 
 ```bash
-# สร้างบัญชี
-craft register
-
-# เข้าสู่ระบบ
-craft login
-
-# หรือใช้ API key แทน
-craft config --token cit_your_api_key_here
+# เข้าสู่ระบบด้วย API key หรือ JWT token
+craft login cit_your_api_key_here
 
 # ดู VM ทั้งหมด
 craft vm list
@@ -63,11 +57,10 @@ craft wallet balance
 
 | Command | Description |
 |---|---|
-| `craft register` | สมัครบัญชีใหม่ |
-| `craft login` | เข้าสู่ระบบ (รองรับ 2FA) |
-| `craft logout` | ออกจากระบบ |
+| `craft login <token>` | เข้าสู่ระบบด้วย API key (`cit_...`) หรือ JWT token |
+| `craft logout` | ออกจากระบบ (ลบ token) |
 | `craft refresh-token` | รีเฟรช access token |
-| `craft config --token <key>` | ตั้งค่า API key ตรง |
+| `craft config --token <key>` | ตั้งค่า token ตรง |
 | `craft config --show` | ดูการตั้งค่าปัจจุบัน |
 
 ### Profile
@@ -281,10 +274,15 @@ craft config --show
 
 ## Authentication
 
-รองรับ 2 แบบ:
+```bash
+# ใช้ API key (สร้างได้จาก web dashboard หรือ craft api-key create)
+craft login cit_xxxxxxxxxxxx
 
-1. **Bearer Token (JWT)** — ได้จาก `craft login` เก็บอัตโนมัติ
-2. **API Key** — สร้างจาก `craft api-key create` แล้วตั้งค่าด้วย `craft config --token cit_...`
+# หรือใช้ JWT token
+craft login eyJhbGciOi...
+```
+
+Token ถูกเก็บที่ `~/.config/craft/config.json` (chmod 600)
 
 ## Uninstall
 

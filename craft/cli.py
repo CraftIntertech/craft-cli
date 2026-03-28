@@ -1,7 +1,7 @@
 import click
 
 from craft import __version__
-from craft.commands.auth import login, logout, refresh, register
+from craft.commands.auth import login, logout, refresh
 from craft.commands.profile import change_password, profile_show, profile_update
 from craft.commands.vm import (
     vm_console,
@@ -61,9 +61,7 @@ def cli():
 
     Get started:
 
-      craft register          # Create account
-
-      craft login             # Authenticate
+      craft login <token>     # Authenticate with token or API key
 
       craft vm list           # List your VMs
 
@@ -73,7 +71,6 @@ def cli():
 
 
 # --- Auth (top-level) ---
-cli.add_command(register)
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(refresh, "refresh-token")

@@ -47,7 +47,6 @@ info "Checking latest version..."
 VERSION=$(curl -fsSL "$API_URL" 2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/')
 
 if [ -z "$VERSION" ]; then
-    # Fallback: use VERSION from repo
     VERSION=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null || echo "")
     if [ -z "$VERSION" ]; then
         fail "Could not determine latest version"
@@ -66,7 +65,6 @@ if curl -fsSL "$DOWNLOAD_URL" -o "$TARGET" 2>/dev/null; then
     chmod +x "$TARGET"
     ok "Downloaded craft binary"
 else
-    # Release not yet available, fall back to building from source
     warn "Release binary not found, building from source..."
 
     if ! command -v go &>/dev/null; then
@@ -109,9 +107,6 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     printf "    ${CYAN}source ~/.bashrc${NC}\n"
     echo ""
 fi
-
-# --- Verify ---
-INSTALLED_VERSION=$("$TARGET" version 2>/dev/null | grep -oP '[\d.]+' | head -1 || echo "$VERSION")
 
 # --- Done ---
 echo ""

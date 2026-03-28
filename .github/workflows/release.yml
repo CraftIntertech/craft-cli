@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build all platforms
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          mkdir -p dist
+
+          GOOS=linux   GOARCH=amd64 go build -ldflags "-s -w -X github.com/CraftIntertech/craft-cli/cmd.Version=$VERSION" -o dist/craft-linux-amd64 .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "-s -w -X github.com/CraftIntertech/craft-cli/cmd.Version=$VERSION" -o dist/craft-linux-arm64 .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "-s -w -X github.com/CraftIntertech/craft-cli/cmd.Version=$VERSION" -o dist/craft-darwin-amd64 .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "-s -w -X github.com/CraftIntertech/craft-cli/cmd.Version=$VERSION" -o dist/craft-darwin-arm64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X github.com/CraftIntertech/craft-cli/cmd.Version=$VERSION" -o dist/craft-windows-amd64.exe .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## craft-cli v${{ steps.version.outputs.VERSION }}
+
+            Single binary — no Python, no dependencies.
+
+            ### Download
+            | Platform | Architecture | File |
+            |----------|-------------|------|
+            | Linux | x86_64 | `craft-linux-amd64` |
+            | Linux | ARM64 | `craft-linux-arm64` |
+            | macOS | Intel | `craft-darwin-amd64` |
+            | macOS | Apple Silicon | `craft-darwin-arm64` |
+            | Windows | x64 | `craft-windows-amd64.exe` |
+
+            ### Install (Linux/macOS)
+            ```bash
+            curl -fsSL https://github.com/CraftIntertech/craft-cli/releases/download/v${{ steps.version.outputs.VERSION }}/craft-linux-amd64 -o craft
+            chmod +x craft && sudo mv craft /usr/local/bin/
+            ```
+          files: dist/*

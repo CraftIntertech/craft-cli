@@ -1,7 +1,7 @@
 import click
 
 from craft.client import delete, get, post
-from craft.output import print_item, print_json, print_success, print_table
+from craft.output import print_item, print_success, print_table
 
 
 @click.command("list")
@@ -25,7 +25,7 @@ def snap_list(vm_id):
             ])
         print_table(rows, ["ID", "Description", "Created"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("create")

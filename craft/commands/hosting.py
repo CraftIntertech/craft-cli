@@ -1,7 +1,7 @@
 import click
 
 from craft.client import delete, get, patch, post
-from craft.output import print_item, print_json, print_page_info, print_success, print_table
+from craft.output import print_item, print_page_info, print_success, print_table
 
 
 @click.command("plans")
@@ -23,7 +23,7 @@ def hosting_plans():
             ])
         print_table(rows, ["ID", "Name", "Disk (GB)", "Bandwidth", "Monthly (฿)"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("nodes")
@@ -44,7 +44,7 @@ def hosting_nodes():
             ])
         print_table(rows, ["ID", "Name", "Location", "Status"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("list")
@@ -68,7 +68,7 @@ def hosting_list(page, limit):
         print_table(rows, ["ID", "Name", "Domain", "Status"])
         print_page_info(data, page, limit)
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("get")
@@ -173,7 +173,7 @@ def hosting_login_url(hosting_id):
     if url:
         click.echo(url)
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("billing")

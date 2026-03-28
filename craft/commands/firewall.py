@@ -1,7 +1,7 @@
 import click
 
 from craft.client import delete, get, post, put
-from craft.output import print_item, print_json, print_success, print_table
+from craft.output import print_item, print_success, print_table
 
 
 @click.command("list")
@@ -29,7 +29,7 @@ def fw_list(vm_id):
             ])
         print_table(rows, ["#", "Type", "Action", "Proto", "DPort", "Source", "Enabled", "Comment"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("add")

@@ -109,7 +109,7 @@ def ticket_list():
             ])
         print_table(rows, ["ID", "Subject", "Status", "Created"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("get")

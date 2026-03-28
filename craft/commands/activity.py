@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get
-from craft.output import print_json, print_page_info, print_table
+from craft.output import print_item, print_page_info, print_table
 
 
 @click.command("list")
@@ -25,4 +25,4 @@ def activity_list(page, limit):
         print_table(rows, ["Action", "Description", "IP", "Date"])
         print_page_info(data, page, limit)
     else:
-        print_json(data)
+        print_item(data)

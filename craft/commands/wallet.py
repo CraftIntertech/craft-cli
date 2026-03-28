@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get, post
-from craft.output import print_item, print_json, print_page_info, print_success, print_table
+from craft.output import print_item, print_page_info, print_success, print_table
 
 
 @click.command("balance")
@@ -33,7 +33,7 @@ def wallet_transactions(page, limit):
         print_table(rows, ["ID", "Type", "Amount", "Description", "Date"])
         print_page_info(data, page, limit)
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("topup")

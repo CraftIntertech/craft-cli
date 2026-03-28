@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get
-from craft.output import print_json, print_table
+from craft.output import print_item, print_table
 
 
 def _extract_items(data, *keys):
@@ -52,7 +52,7 @@ def plans_vm(node_id):
             ])
         print_table(rows, ["ID", "Name", "CPU", "RAM", "Disk", "Daily (฿)", "Monthly (฿)"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("os")
@@ -74,7 +74,7 @@ def plans_os():
             ])
         print_table(rows, ["ID", "Name", "Type"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("dedicated")
@@ -95,7 +95,7 @@ def plans_dedicated():
             ])
         print_table(rows, ["ID", "Name", "CPU", "RAM", "Disk", "Monthly (฿)"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("colocation")
@@ -115,4 +115,4 @@ def plans_colocation():
             ])
         print_table(rows, ["ID", "Name", "Rack", "Power", "Monthly (฿)"])
     else:
-        print_json(data)
+        print_item(data)

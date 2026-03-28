@@ -1,7 +1,7 @@
 import click
 
 from craft.client import delete, get, patch, post
-from craft.output import print_item, print_json, print_page_info, print_success, print_table
+from craft.output import print_item, print_page_info, print_success, print_table
 
 
 @click.command("list")
@@ -26,7 +26,7 @@ def vm_list(page, limit):
         print_table(rows, ["ID", "Name", "Status", "IP", "OS"])
         print_page_info(data, page, limit)
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("get")
@@ -328,9 +328,71 @@ def vm_network(vm_id):
 @click.argument("vm_id", required=False, default=None)
 @click.option("--hours", default=24, help="Hours of data (1-168, default: 24)")
 def vm_metrics(vm_id, hours):
-    """Get VM performance metrics."""
+    """Get VM performance metrics (CPU, RAM, disk, network).
+
+    \b
+    Examples:
+      craft vm metrics <VM_ID>              # Last 24 hours
+      craft vm metrics <VM_ID> --hours 168  # Last 7 days
+    """
     if not vm_id:
         from craft.interactive import select_vm
         vm_id = select_vm()
     data = get(f"/vms/{vm_id}/metrics", params={"hours": hours})
-    print_json(data)
+    inner = data.get("data", data)
+
+    # Try to display metrics as a readable summary
+    if isinstance(inner, dict):
+        # If it has time-series data points, show summary
+        cpu = inner.get("cpu", inner.get("cpuUsage"))
+        mem = inner.get("memory", inner.get("memoryUsage", inner.get("ram")))
+        disk = inner.get("disk", inner.get("diskUsage"))
+        net_in = inner.get("networkIn", inner.get("netIn", inner.get("rx")))
+        net_out = inner.get("networkOut", inner.get("netOut", inner.get("tx")))
+
+        # Check if values are lists (time series) or scalars
+        has_series = any(isinstance(v, list) for v in [cpu, mem, disk, net_in, net_out] if v is not None)
+
+        if has_series:
+            click.echo(click.style(f"── VM Metrics (last {hours}h) ──", fg="cyan", bold=True))
+            click.echo()
+            for label, series in [("CPU %", cpu), ("Memory %", mem), ("Disk %", disk),
+                                   ("Net In", net_in), ("Net Out", net_out)]:
+                if isinstance(series, list) and series:
+                    vals = [v.get("value", v) if isinstance(v, dict) else v for v in series]
+                    nums = [float(v) for v in vals if v is not None]
+                    if nums:
+                        avg = sum(nums) / len(nums)
+                        peak = max(nums)
+                        click.echo(f"  {label:<10}  avg: {avg:.1f}  peak: {peak:.1f}  ({len(nums)} points)")
+            click.echo()
+            print_item(data)
+        else:
+            click.echo(click.style(f"── VM Metrics (last {hours}h) ──", fg="cyan", bold=True))
+            click.echo()
+            print_item(data)
+    elif isinstance(inner, list) and inner:
+        # Array of data points
+        click.echo(click.style(f"── VM Metrics (last {hours}h) — {len(inner)} data points ──", fg="cyan", bold=True))
+        click.echo()
+        rows = []
+        for point in inner:
+            if isinstance(point, dict):
+                rows.append([
+                    point.get("timestamp", point.get("time", "")),
+                    point.get("cpu", point.get("cpuUsage", "")),
+                    point.get("memory", point.get("memoryUsage", "")),
+                    point.get("disk", point.get("diskUsage", "")),
+                    point.get("networkIn", point.get("netIn", "")),
+                    point.get("networkOut", point.get("netOut", "")),
+                ])
+        if rows:
+            # Show last 20 rows max to keep it readable
+            if len(rows) > 20:
+                click.echo(click.style(f"  (showing last 20 of {len(rows)} points)", dim=True))
+                rows = rows[-20:]
+            print_table(rows, ["Time", "CPU %", "Mem %", "Disk %", "Net In", "Net Out"])
+        else:
+            print_item(data)
+    else:
+        print_item(data)

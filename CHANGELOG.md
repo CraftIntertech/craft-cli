@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.2 (2026-03-28)
+
+### Improvements
+- **ไม่มี raw JSON อีกแล้ว** — ทุก fallback เปลี่ยนจาก `print_json` เป็น `print_item` แสดง key-value อ่านง่าย
+- **VM metrics** — แสดงสรุป CPU/RAM/Disk/Network เป็นตารางแทน JSON ดิบ พร้อม avg/peak summary
+- **Cleanup imports** — ลบ unused `print_json` imports ทุกไฟล์
+
+---
+
 ## v1.3.1 (2026-03-28)
 
 ### Improvements

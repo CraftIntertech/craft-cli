@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get
-from craft.output import print_item, print_json, print_table
+from craft.output import print_item, print_table
 
 
 @click.command("list")
@@ -28,7 +28,7 @@ def node_list():
             ])
         print_table(rows, ["ID", "Name", "Location", "Country", "Status"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("hardware")

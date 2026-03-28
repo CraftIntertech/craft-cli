@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get
-from craft.output import print_item, print_json, print_table
+from craft.output import print_item, print_table
 
 
 @click.command("status")
@@ -30,7 +30,7 @@ def system_plans():
             ])
         print_table(rows, ["Name", "CPU", "RAM", "Disk", "Monthly (฿)"])
     else:
-        print_json(data)
+        print_item(data)
 
 
 @click.command("nodes")
@@ -51,4 +51,4 @@ def system_nodes():
             ])
         print_table(rows, ["Name", "Location", "Country", "Status"])
     else:
-        print_json(data)
+        print_item(data)

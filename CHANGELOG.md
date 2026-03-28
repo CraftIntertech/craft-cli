@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.3.0 (2026-03-28)
+
+### New Features
+- **`craft test-api`** — ทดสอบ API connectivity ทุก endpoint (public + authenticated)
+- **Status สี** — running/active = เขียว, stopped/error = แดง, pending = เหลือง ในตารางและ item display
+- **Pagination info** — แสดง "Page X of Y (N total)" ท้ายทุก list command
+- **Interactive tickets** — `ticket create/reply` ไม่ต้องใส่ flag ก็ได้ จะ prompt ถามให้
+- **Interactive wallet topup** — `wallet topup` ไม่ต้องใส่ flag ก็ได้ จะ prompt ถามให้
+
+### Improvements
+- **ตารางแทน JSON** — `node list`, `plan vm/os/dedicated/colocation`, `hosting plans/nodes`, `system plans/nodes` แสดงตารางสวยแทน raw JSON
+- **Confirmation prompts** — เพิ่มถามยืนยันก่อนลบ firewall rule, SSH key, rDNS record
+- **Interactive node hardware** — `node hardware` เลือก node จาก list ได้ถ้าไม่ใส่ ID
+- **Help text** — ปรับคำอธิบาย CLI ให้ดีขึ้น มี quick start + examples
+
+### Testing
+- เพิ่ม **144 unit tests** ครอบคลุมทุก API endpoint, client layer, config, output formatting
+- เพิ่ม pytest config ใน `pyproject.toml`
+
+---
+
 ## v1.2.0 (2026-03-28)
 
 ### New Features

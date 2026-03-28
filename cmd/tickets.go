@@ -94,7 +94,7 @@ var ticketGetCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("── Messages (%d) ──\n", len(messages))
+		fmt.Printf("\u2500\u2500 Messages (%d) \u2500\u2500\n", len(messages))
 		fmt.Println()
 
 		for _, msg := range messages {

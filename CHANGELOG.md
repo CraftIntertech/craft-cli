@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.1 (2026-03-28)
+
+### Improvements
+- **`craft update` ทำงานจริง** — ดาวน์โหลด binary ใหม่จาก GitHub Releases อัตโนมัติ, ตรวจ version, เลือก platform ถูกต้อง, แทนที่ binary เดิมเลย
+- รองรับ Linux/macOS/Windows ทุก architecture
+
+---
+
 ## v2.0.0 (2026-03-28)
 
 ### Breaking Changes

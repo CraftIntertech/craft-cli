@@ -204,22 +204,22 @@ func PrintTable(rows [][]string, headers []string) {
 
 // PrintSuccess prints a green success message.
 func PrintSuccess(msg string) {
-	color.Green("✓ %s", msg)
+	color.Green("\u2713 %s", msg)
 }
 
 // PrintWarning prints a yellow warning message.
 func PrintWarning(msg string) {
-	color.Yellow("⚠ %s", msg)
+	color.Yellow("\u26a0 %s", msg)
 }
 
 // PrintError prints a red error message.
 func PrintError(msg string) {
-	color.Red("✗ %s", msg)
+	color.Red("\u2717 %s", msg)
 }
 
 // PrintInfo prints a cyan info message.
 func PrintInfo(msg string) {
-	color.Cyan("ℹ %s", msg)
+	color.Cyan("\u2139 %s", msg)
 }
 
 // formatValue converts a value to a display string with appropriate coloring.

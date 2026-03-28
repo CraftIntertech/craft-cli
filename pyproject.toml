@@ -21,6 +21,9 @@ craft = "craft.cli:cli"
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 
+[tool.setuptools]
+packages = ["craft", "craft.commands"]
+
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
 

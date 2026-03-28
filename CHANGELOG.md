@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.3 (2026-03-28)
+
+### Bug Fixes
+- **install.sh** — เปลี่ยนเป็นโหลด Go binary ตรง ไม่ต้อง Python/pip/git อีกต่อไป
+- **pyproject.toml** — แก้ setuptools ไม่ scan `cmd/` กับ `internal/` (Go dirs) เป็น Python packages
+- ตรวจจับ + ลบ Python installation เก่าอัตโนมัติ
+
+---
+
 ## v2.0.2 (2026-03-28)
 
 ### Bug Fixes

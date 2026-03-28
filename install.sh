@@ -2,10 +2,9 @@
 set -euo pipefail
 
 APP_NAME="craft"
-INSTALL_DIR="$HOME/.local/share/craft-cli"
 BIN_DIR="$HOME/.local/bin"
-REPO_URL="https://github.com/CraftIntertech/craft-cli.git"
-MIN_PYTHON="3.8"
+REPO="CraftIntertech/craft-cli"
+API_URL="https://api.github.com/repos/$REPO/releases/latest"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -19,75 +18,83 @@ ok()    { printf "${GREEN}[✓]${NC} %s\n" "$1"; }
 warn()  { printf "${YELLOW}[!]${NC} %s\n" "$1"; }
 fail()  { printf "${RED}[✗]${NC} %s\n" "$1"; exit 1; }
 
-# --- Check Python ---
-find_python() {
-    for cmd in python3 python; do
-        if command -v "$cmd" &>/dev/null; then
-            local ver
-            ver=$("$cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
-            if [ -n "$ver" ]; then
-                local major minor
-                major=$(echo "$ver" | cut -d. -f1)
-                minor=$(echo "$ver" | cut -d. -f2)
-                if [ "$major" -ge 3 ] && [ "$minor" -ge 8 ]; then
-                    echo "$cmd"
-                    return 0
-                fi
-            fi
-        fi
-    done
-    return 1
-}
+# --- Detect platform ---
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+ARCH="$(uname -m)"
 
-PYTHON=$(find_python) || fail "Python >= $MIN_PYTHON is required. Please install Python first."
-info "Using $PYTHON ($($PYTHON --version 2>&1))"
+case "$OS" in
+    linux)  OS="linux" ;;
+    darwin) OS="darwin" ;;
+    *)      fail "Unsupported OS: $OS. Download manually from https://github.com/$REPO/releases" ;;
+esac
 
-# --- Check pip ---
-if ! $PYTHON -m pip --version &>/dev/null; then
-    fail "pip is not installed. Run: $PYTHON -m ensurepip --upgrade"
+case "$ARCH" in
+    x86_64|amd64)   ARCH="amd64" ;;
+    aarch64|arm64)   ARCH="arm64" ;;
+    *)               fail "Unsupported architecture: $ARCH" ;;
+esac
+
+BINARY="craft-${OS}-${ARCH}"
+info "Detected platform: ${OS}/${ARCH}"
+
+# --- Check for curl ---
+if ! command -v curl &>/dev/null; then
+    fail "curl is required. Install it with: sudo apt install curl"
 fi
 
-# --- Check git ---
-if ! command -v git &>/dev/null; then
-    fail "git is required. Install it with: sudo apt install git"
+# --- Get latest release version ---
+info "Checking latest version..."
+VERSION=$(curl -fsSL "$API_URL" 2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/')
+
+if [ -z "$VERSION" ]; then
+    # Fallback: use VERSION from repo
+    VERSION=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null || echo "")
+    if [ -z "$VERSION" ]; then
+        fail "Could not determine latest version"
+    fi
 fi
 
-# --- Clone or update ---
-BRANCH="main"
-if [ -d "$INSTALL_DIR" ]; then
-    info "Updating existing installation..."
-    git -C "$INSTALL_DIR" fetch origin "$BRANCH" 2>/dev/null && \
-    git -C "$INSTALL_DIR" reset --hard "origin/$BRANCH" 2>/dev/null || \
-    (warn "Update failed, re-cloning..." && rm -rf "$INSTALL_DIR" && git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR")
-else
-    info "Downloading craft-cli..."
-    git clone -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
-fi
-ok "Source ready at $INSTALL_DIR"
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/${BINARY}"
+info "Latest version: v${VERSION}"
 
-# --- Create venv ---
-VENV_DIR="$INSTALL_DIR/.venv"
-if [ ! -d "$VENV_DIR" ]; then
-    info "Creating virtual environment..."
-    $PYTHON -m venv "$VENV_DIR"
-fi
-ok "Virtual environment ready"
-
-# --- Install ---
-info "Installing dependencies..."
-"$VENV_DIR/bin/pip" install --upgrade pip -q
-"$VENV_DIR/bin/pip" install -e "$INSTALL_DIR" -q
-ok "craft-cli installed"
-
-# --- Create bin symlink ---
+# --- Download binary ---
 mkdir -p "$BIN_DIR"
-WRAPPER="$BIN_DIR/craft"
-cat > "$WRAPPER" <<SCRIPT
-#!/usr/bin/env bash
-exec "$VENV_DIR/bin/craft" "\$@"
-SCRIPT
-chmod +x "$WRAPPER"
-ok "Created $WRAPPER"
+TARGET="$BIN_DIR/$APP_NAME"
+
+info "Downloading ${BINARY}..."
+if curl -fsSL "$DOWNLOAD_URL" -o "$TARGET" 2>/dev/null; then
+    chmod +x "$TARGET"
+    ok "Downloaded craft binary"
+else
+    # Release not yet available, fall back to building from source
+    warn "Release binary not found, building from source..."
+
+    if ! command -v go &>/dev/null; then
+        fail "Go is required to build from source. Install from https://go.dev/dl/ or download binary from https://github.com/$REPO/releases"
+    fi
+
+    TMPDIR=$(mktemp -d)
+    trap "rm -rf $TMPDIR" EXIT
+    info "Cloning repository..."
+    git clone -q --depth 1 "https://github.com/$REPO.git" "$TMPDIR/craft-cli"
+    info "Building..."
+    cd "$TMPDIR/craft-cli"
+    go build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
+    chmod +x "$TARGET"
+    ok "Built from source"
+fi
+
+# --- Remove old Python installation if present ---
+OLD_INSTALL="$HOME/.local/share/craft-cli"
+if [ -d "$OLD_INSTALL/.venv" ]; then
+    warn "Found old Python installation at $OLD_INSTALL"
+    read -p "  Remove it? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$OLD_INSTALL"
+        ok "Removed old Python installation"
+    fi
+fi
 
 # --- Check PATH ---
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
@@ -103,14 +110,16 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo ""
 fi
 
-# --- Read version ---
-VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "unknown")
+# --- Verify ---
+INSTALLED_VERSION=$("$TARGET" version 2>/dev/null | grep -oP '[\d.]+' | head -1 || echo "$VERSION")
 
 # --- Done ---
 echo ""
 printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 printf "${GREEN}  craft-cli v${VERSION} installed!${NC}\n"
 printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+echo ""
+echo "  No Python required — single binary!"
 echo ""
 echo "  Get started:"
 echo ""
@@ -120,7 +129,6 @@ printf "    ${CYAN}craft vm list${NC}             # List your VMs\n"
 echo ""
 echo "  Manage:"
 echo ""
-printf "    ${CYAN}craft version${NC}             # Check version & updates\n"
+printf "    ${CYAN}craft version${NC}             # Check version\n"
 printf "    ${CYAN}craft update${NC}              # Update to latest\n"
-printf "    ${CYAN}craft uninstall${NC}           # Remove craft-cli\n"
 echo ""

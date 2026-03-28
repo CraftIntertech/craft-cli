@@ -89,6 +89,9 @@ def fw_delete(vm_id, position):
         vm_id = select_vm()
     if position is None:
         position = click.prompt("Rule position (0-based)", type=int)
+    if not click.confirm(f"Delete firewall rule at position {position}?"):
+        click.echo("Cancelled.")
+        return
     delete(f"/vms/{vm_id}/firewall/{position}")
     print_success(f"Firewall rule {position} deleted.")
 

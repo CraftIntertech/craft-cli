@@ -1,7 +1,7 @@
 import click
 
 from craft.client import get, post
-from craft.output import print_item, print_json, print_success, print_table
+from craft.output import print_item, print_json, print_page_info, print_success, print_table
 
 
 @click.command("balance")
@@ -31,16 +31,30 @@ def wallet_transactions(page, limit):
                 t.get("createdAt", ""),
             ])
         print_table(rows, ["ID", "Type", "Amount", "Description", "Date"])
+        print_page_info(data, page, limit)
     else:
         print_json(data)
 
 
 @click.command("topup")
-@click.option("--amount", required=True, type=float, help="Amount (max 100,000)")
-@click.option("--reference", required=True, help="Bank transfer reference")
+@click.option("--amount", default=None, type=float, help="Amount in THB (max 100,000)")
+@click.option("--reference", default=None, help="Bank transfer reference")
 @click.option("--note", default=None, help="Optional note")
 def wallet_topup(amount, reference, note):
-    """Submit a top-up request."""
+    """Submit a top-up request.
+
+    \b
+    If --amount or --reference is omitted, you will be prompted.
+
+    \b
+    Examples:
+      craft wallet topup --amount 500 --reference TRF123
+      craft wallet topup                    # Interactive prompts
+    """
+    if amount is None:
+        amount = click.prompt("Amount (THB)", type=float)
+    if not reference:
+        reference = click.prompt("Bank transfer reference")
     body = {"amount": amount, "reference": reference}
     if note:
         body["note"] = note

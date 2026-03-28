@@ -34,11 +34,24 @@ def ticket_get(ticket_id):
 
 
 @click.command("create")
-@click.option("--subject", required=True, help="Subject (1-255 chars)")
-@click.option("--body", "body_text", required=True, help="Message (1-10,000 chars)")
+@click.option("--subject", default=None, help="Subject (1-255 chars)")
+@click.option("--body", "body_text", default=None, help="Message (1-10,000 chars)")
 @click.option("--vm-id", default=None, help="Link to a VM (optional)")
 def ticket_create(subject, body_text, vm_id):
-    """Create a support ticket."""
+    """Create a support ticket.
+
+    \b
+    If --subject or --body is omitted, you will be prompted interactively.
+
+    \b
+    Examples:
+      craft ticket create --subject "Help" --body "Details..."
+      craft ticket create                    # Interactive prompts
+    """
+    if not subject:
+        subject = click.prompt("Subject")
+    if not body_text:
+        body_text = click.prompt("Message")
     body = {"subject": subject, "body": body_text}
     if vm_id:
         body["vmId"] = vm_id
@@ -49,9 +62,11 @@ def ticket_create(subject, body_text, vm_id):
 
 @click.command("reply")
 @click.argument("ticket_id")
-@click.option("--body", "body_text", required=True, help="Reply message")
+@click.option("--body", "body_text", default=None, help="Reply message")
 def ticket_reply(ticket_id, body_text):
     """Reply to a ticket."""
+    if not body_text:
+        body_text = click.prompt("Message")
     post(f"/tickets/{ticket_id}/messages", {"body": body_text})
     print_success("Reply sent.")
 

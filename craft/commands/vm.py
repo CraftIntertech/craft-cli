@@ -1,7 +1,7 @@
 import click
 
 from craft.client import delete, get, patch, post
-from craft.output import print_item, print_json, print_success, print_table
+from craft.output import print_item, print_json, print_page_info, print_success, print_table
 
 
 @click.command("list")
@@ -24,6 +24,7 @@ def vm_list(page, limit):
                 vm.get("os", vm.get("osTemplate", "")),
             ])
         print_table(rows, ["ID", "Name", "Status", "IP", "OS"])
+        print_page_info(data, page, limit)
     else:
         print_json(data)
 

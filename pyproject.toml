@@ -18,5 +18,12 @@ dependencies = [
 [project.scripts]
 craft = "craft.cli:cli"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

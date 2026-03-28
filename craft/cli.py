@@ -55,23 +55,28 @@ from craft.commands.nodes import node_hardware, node_list
 from craft.commands.plans import plans_colocation, plans_dedicated, plans_os, plans_vm
 from craft.commands.system import system_nodes, system_plans, system_status
 from craft.commands.activity import activity_list
+from craft.commands.test_api import test_api
 from craft.config import get_base_url, load_config, save_config
 
 
 @click.group()
 @click.version_option(__version__, prog_name="craft")
 def cli():
-    """CraftIntertech Cloud CLI
+    """CraftIntertech Cloud CLI — manage VMs, hosting, wallet, and more.
 
-    Manage VMs, hosting, wallet, and more from the command line.
+    \b
+    Quick start:
+      craft login <token>          # Login with API key (cit_...) or JWT
+      craft vm list                # List your VMs
+      craft vm create -i           # Create VM (interactive wizard)
+      craft test-api               # Test API connectivity
 
-    Get started:
-
-      craft login <token>     # Authenticate with token or API key
-
-      craft vm list           # List your VMs
-
-      craft vm create --help  # Create a VM
+    \b
+    Common shortcuts:
+      craft vm list                # = craft vm list --page 1
+      craft wallet balance         # Check wallet balance
+      craft hosting list           # List hosting accounts
+      craft system status          # Public system status (no login needed)
     """
     pass
 
@@ -328,6 +333,9 @@ system.add_command(system_nodes)
 
 # --- Activity ---
 cli.add_command(activity_list, "activity")
+
+# --- Test API ---
+cli.add_command(test_api)
 
 
 # --- Update ---

@@ -33,14 +33,48 @@ def api_request(method, path, json_data=None, params=None, auth_required=True):
     try:
         data = resp.json()
     except ValueError:
-        if resp.status_code >= 400:
-            click.echo(f"Error: HTTP {resp.status_code}", err=True)
-            sys.exit(1)
-        return {}
+        data = {}
 
     if resp.status_code >= 400:
-        msg = data.get("message") or data.get("error") or f"HTTP {resp.status_code}"
-        click.echo(f"Error: {msg}", err=True)
+        # Try to extract message from response
+        msg = ""
+        if isinstance(data, dict):
+            msg = (
+                data.get("message")
+                or data.get("error")
+                or data.get("detail")
+                or data.get("msg")
+                or ""
+            )
+            # Some APIs nest errors
+            if not msg and "error" in data and isinstance(data["error"], dict):
+                msg = data["error"].get("message", "")
+            # Show validation errors
+            errors = data.get("errors")
+            if isinstance(errors, list):
+                details = [e.get("message", e.get("msg", str(e))) for e in errors]
+                msg = msg + " — " + "; ".join(details) if msg else "; ".join(details)
+            elif isinstance(errors, dict):
+                details = [f"{k}: {v}" for k, v in errors.items()]
+                msg = msg + " — " + "; ".join(details) if msg else "; ".join(details)
+
+        if not msg:
+            status_hints = {
+                400: "Bad request — check your input",
+                401: "Unauthorized — run 'craft login' to authenticate",
+                403: "Forbidden — you don't have permission",
+                404: "Not found — resource doesn't exist",
+                409: "Conflict — resource state doesn't allow this action",
+                422: "Validation error — check your input",
+                429: "Rate limited — try again later",
+                500: "Internal server error",
+                502: "Server temporarily unavailable — try again later",
+                503: "Service unavailable — try again later",
+                504: "Gateway timeout — try again later",
+            }
+            msg = status_hints.get(resp.status_code, f"HTTP {resp.status_code}")
+
+        click.echo(f"Error [{resp.status_code}]: {msg}", err=True)
         sys.exit(1)
 
     return data

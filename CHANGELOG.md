@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.1 (2026-03-28)
+
+### Improvements
+- **Interactive ticket commands** — `ticket get/reply/close` เลือก ticket จาก list ได้ (fuzzy search) ไม่ต้องจำ UUID
+- **Formatted message thread** — `ticket get` แสดง messages แบบ thread สวย แยก [You]/[Staff] มีสี + timestamp แทน raw dict
+- **Ticket close confirmation** — ถามยืนยันก่อนปิด ticket
+
+---
+
 ## v1.3.0 (2026-03-28)
 
 ### New Features

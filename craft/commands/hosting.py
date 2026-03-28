@@ -1,21 +1,50 @@
 import click
 
 from craft.client import delete, get, patch, post
-from craft.output import print_item, print_json, print_success, print_table
+from craft.output import print_item, print_json, print_page_info, print_success, print_table
 
 
 @click.command("plans")
 def hosting_plans():
-    """List available hosting plans."""
+    """List available hosting plans with pricing."""
     data = get("/hosting/plans")
-    print_json(data)
+    items = data.get("data", data)
+    if isinstance(items, dict):
+        items = items.get("items", items.get("plans", []))
+    if isinstance(items, list) and items:
+        rows = []
+        for p in items:
+            rows.append([
+                p.get("id", "")[:12],
+                p.get("name", ""),
+                p.get("diskGb", p.get("disk", "")),
+                p.get("bandwidth", ""),
+                p.get("priceMonthly", p.get("price", "-")),
+            ])
+        print_table(rows, ["ID", "Name", "Disk (GB)", "Bandwidth", "Monthly (฿)"])
+    else:
+        print_json(data)
 
 
 @click.command("nodes")
 def hosting_nodes():
     """List available hosting nodes."""
     data = get("/hosting/nodes")
-    print_json(data)
+    items = data.get("data", data)
+    if isinstance(items, dict):
+        items = items.get("items", items.get("nodes", []))
+    if isinstance(items, list) and items:
+        rows = []
+        for n in items:
+            rows.append([
+                n.get("id", ""),
+                n.get("name", n.get("hostname", "")),
+                n.get("location", ""),
+                n.get("status", ""),
+            ])
+        print_table(rows, ["ID", "Name", "Location", "Status"])
+    else:
+        print_json(data)
 
 
 @click.command("list")
@@ -37,6 +66,7 @@ def hosting_list(page, limit):
                 h.get("status", ""),
             ])
         print_table(rows, ["ID", "Name", "Domain", "Status"])
+        print_page_info(data, page, limit)
     else:
         print_json(data)
 

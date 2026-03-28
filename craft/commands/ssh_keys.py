@@ -50,5 +50,8 @@ def sshkey_add_file(name, key_file):
 @click.argument("key_id")
 def sshkey_delete(key_id):
     """Delete an SSH key."""
+    if not click.confirm(f"Delete SSH key {key_id}?"):
+        click.echo("Cancelled.")
+        return
     delete(f"/ssh-keys/{key_id}")
     print_success(f"SSH key {key_id} deleted.")

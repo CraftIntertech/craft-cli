@@ -9,6 +9,27 @@ try:
 except ImportError:
     HAS_TABULATE = False
 
+# Status color mapping for common status values
+_STATUS_COLORS = {
+    "running": "green", "active": "green", "online": "green", "enabled": "green",
+    "open": "green", "paid": "green", "completed": "green", "success": "green",
+    "stopped": "red", "inactive": "red", "offline": "red", "disabled": "red",
+    "deleted": "red", "failed": "red", "error": "red", "closed": "red",
+    "expired": "red", "suspended": "red",
+    "pending": "yellow", "creating": "yellow", "starting": "yellow",
+    "stopping": "yellow", "rebooting": "yellow", "resizing": "yellow",
+    "reinstalling": "yellow", "processing": "yellow",
+}
+
+
+def _colorize_status(val):
+    """Apply color to known status values."""
+    if isinstance(val, str):
+        color = _STATUS_COLORS.get(val.lower())
+        if color:
+            return click.style(val, fg=color)
+    return str(val)
+
 
 def print_json(data):
     """Print data as formatted JSON."""
@@ -17,6 +38,18 @@ def print_json(data):
 
 def print_table(rows, headers):
     """Print data as a table."""
+    # Colorize status columns
+    status_cols = {i for i, h in enumerate(headers) if h.lower() in ("status", "state")}
+    if status_cols:
+        colored_rows = []
+        for row in rows:
+            new_row = list(row)
+            for col_idx in status_cols:
+                if col_idx < len(new_row):
+                    new_row[col_idx] = _colorize_status(new_row[col_idx])
+            colored_rows.append(new_row)
+        rows = colored_rows
+
     if HAS_TABULATE:
         click.echo(tabulate(rows, headers=headers, tablefmt="simple"))
     else:
@@ -27,6 +60,39 @@ def print_table(rows, headers):
 
 def print_success(msg):
     click.echo(click.style(msg, fg="green"))
+
+
+def print_warning(msg):
+    click.echo(click.style(msg, fg="yellow"))
+
+
+def print_page_info(data, page=None, limit=None):
+    """Print pagination info if available in response."""
+    if not isinstance(data, dict):
+        return
+    meta = data.get("meta", data.get("pagination", {}))
+    if isinstance(meta, dict):
+        total = meta.get("total", meta.get("totalItems"))
+        total_pages = meta.get("totalPages", meta.get("pages"))
+        current = meta.get("page", meta.get("currentPage", page))
+        if total is not None and current is not None:
+            page_info = f"  Page {current}"
+            if total_pages:
+                page_info += f" of {total_pages}"
+            page_info += f" ({total} total)"
+            click.echo(click.style(page_info, dim=True))
+            return
+    # Fallback: infer from list length
+    if page and limit:
+        inner = data.get("data", data)
+        if isinstance(inner, list):
+            count = len(inner)
+            if count > 0:
+                click.echo(click.style(f"  Page {page} ({count} items)", dim=True))
+        elif isinstance(inner, dict):
+            items = inner.get("items", inner.get("vms", inner.get("accounts", [])))
+            if isinstance(items, list) and items:
+                click.echo(click.style(f"  Page {page} ({len(items)} items)", dim=True))
 
 
 def _format_value(val):
@@ -91,9 +157,15 @@ def print_item(data, fields=None):
 
     max_len = max(len(l) for l in labels.values())
 
+    # Keys that should get status coloring
+    status_keys = {"status", "state"}
+
     for key in items:
         if key not in flat:
             continue
         label = labels[key]
-        val = _format_value(flat[key])
+        if key.lower() in status_keys:
+            val = _colorize_status(flat[key])
+        else:
+            val = _format_value(flat[key])
         click.echo(f"  {label:<{max_len}}  {val}")

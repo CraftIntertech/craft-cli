@@ -37,5 +37,8 @@ def rdns_delete(vm_id):
     if not vm_id:
         from craft.interactive import select_vm
         vm_id = select_vm()
+    if not click.confirm("Remove rDNS record?"):
+        click.echo("Cancelled.")
+        return
     delete(f"/vms/{vm_id}/rdns")
     print_success("rDNS record removed.")

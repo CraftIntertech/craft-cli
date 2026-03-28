@@ -5,6 +5,7 @@ APP_NAME="craft"
 BIN_DIR="$HOME/.local/bin"
 REPO="CraftIntertech/craft-cli"
 REPO_URL="https://github.com/$REPO.git"
+GO_VERSION="1.21.13"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -18,12 +19,50 @@ ok()    { printf "${GREEN}[✓]${NC} %s\n" "$1"; }
 warn()  { printf "${YELLOW}[!]${NC} %s\n" "$1"; }
 fail()  { printf "${RED}[✗]${NC} %s\n" "$1"; exit 1; }
 
-# --- Check required tools ---
-command -v git &>/dev/null || fail "git is required. Install: sudo apt install git"
-command -v go  &>/dev/null || fail "Go is required. Install from https://go.dev/dl/"
+# --- Check curl & git ---
+command -v curl &>/dev/null || fail "curl is required. Install: sudo apt install curl"
+command -v git  &>/dev/null || fail "git is required. Install: sudo apt install git"
 
 # --- Detect platform ---
-info "Detected platform: $(uname -s)/$(uname -m)"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+ARCH="$(uname -m)"
+
+case "$OS" in
+    linux)  GO_OS="linux" ;;
+    darwin) GO_OS="darwin" ;;
+    *)      fail "Unsupported OS: $OS" ;;
+esac
+
+case "$ARCH" in
+    x86_64|amd64)   GO_ARCH="amd64" ;;
+    aarch64|arm64)   GO_ARCH="arm64" ;;
+    *)               fail "Unsupported architecture: $ARCH" ;;
+esac
+
+info "Detected platform: ${GO_OS}/${GO_ARCH}"
+
+# --- Auto-install Go if not found ---
+GO_CMD="go"
+if ! command -v go &>/dev/null; then
+    info "Go not found — installing Go ${GO_VERSION} automatically..."
+    GO_TAR="go${GO_VERSION}.${GO_OS}-${GO_ARCH}.tar.gz"
+    GO_URL="https://go.dev/dl/${GO_TAR}"
+    GO_INSTALL_DIR="$HOME/.local/go"
+
+    mkdir -p "$HOME/.local"
+    curl -fsSL "$GO_URL" -o "/tmp/${GO_TAR}" || fail "Failed to download Go from ${GO_URL}"
+    rm -rf "$GO_INSTALL_DIR"
+    tar -C "$HOME/.local" -xzf "/tmp/${GO_TAR}" || fail "Failed to extract Go"
+    rm -f "/tmp/${GO_TAR}"
+
+    GO_CMD="$GO_INSTALL_DIR/bin/go"
+    export PATH="$GO_INSTALL_DIR/bin:$PATH"
+
+    if ! "$GO_CMD" version &>/dev/null; then
+        fail "Go installation failed"
+    fi
+    ok "Go ${GO_VERSION} installed to ${GO_INSTALL_DIR}"
+fi
 
 # --- Clone and build ---
 TMPDIR=$(mktemp -d)
@@ -39,12 +78,12 @@ info "Building..."
 cd "$TMPDIR/craft-cli"
 mkdir -p "$BIN_DIR"
 TARGET="$BIN_DIR/$APP_NAME"
-go build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
+"$GO_CMD" build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
 chmod +x "$TARGET"
 ok "Built craft binary"
 
 # --- Verify ---
-"$TARGET" version &>/dev/null || fail "Binary does not run. Check your Go installation."
+"$TARGET" version &>/dev/null || fail "Binary does not run"
 
 # --- Remove old Python installation if present ---
 OLD_INSTALL="$HOME/.local/share/craft-cli"

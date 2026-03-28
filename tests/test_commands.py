@@ -472,8 +472,19 @@ class TestTickets:
         assert result.exit_code == 0
 
     def test_ticket_get(self, runner, mock_api):
+        mock_api.return_value = make_response({
+            "data": {"id": "t1", "subject": "Help", "status": "open",
+                     "createdAt": "2024-01-01T00:00:00Z", "updatedAt": "2024-01-01",
+                     "messages": [
+                         {"body": "Hi", "authorName": "User", "isStaff": False, "createdAt": "2024-01-01T10:00:00.000Z"},
+                         {"body": "Hello", "authorName": "Support", "isStaff": True, "createdAt": "2024-01-01T11:00:00.000Z"},
+                     ]}
+        })
         result = runner.invoke(cli, ["ticket", "get", "t1"])
         assert result.exit_code == 0
+        assert "Help" in result.output
+        assert "[You]" in result.output
+        assert "[Staff]" in result.output
 
     def test_ticket_create(self, runner, mock_api):
         result = runner.invoke(cli, ["ticket", "create",
@@ -493,9 +504,13 @@ class TestTickets:
         result = runner.invoke(cli, ["ticket", "reply", "t1"], input="Thanks\n")
         assert result.exit_code == 0
 
-    def test_ticket_close(self, runner, mock_api):
-        result = runner.invoke(cli, ["ticket", "close", "t1"])
+    def test_ticket_close_confirm(self, runner, mock_api):
+        result = runner.invoke(cli, ["ticket", "close", "t1"], input="y\n")
         assert result.exit_code == 0
+
+    def test_ticket_close_cancel(self, runner, mock_api):
+        result = runner.invoke(cli, ["ticket", "close", "t1"], input="n\n")
+        assert "Cancelled" in result.output
 
 
 # ─── Referral ───

@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.2 (2026-03-28)
+
+### Bug Fixes
+- **`craft update` จาก Python → Go** — Python version ตรวจจับ v2.0+ แล้วดาวน์โหลด Go binary อัตโนมัติแทนการ `pip install` ที่พัง
+- แสดงคำแนะนำลบ Python installation เก่าหลัง update สำเร็จ
+- ถ้า download ไม่ได้ก็แสดงคำสั่ง manual install ให้
+
+---
+
 ## v2.0.1 (2026-03-28)
 
 ### Improvements

@@ -4,6 +4,27 @@ from craft.client import get, post
 from craft.output import print_item, print_success
 
 
+def _print_qr(data_str):
+    """Print QR code in terminal using block characters."""
+    try:
+        import qrcode
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=1,
+            border=1,
+        )
+        qr.add_data(data_str)
+        qr.make(fit=True)
+        click.echo()
+        qr.print_ascii(invert=True)
+        click.echo()
+        return True
+    except ImportError:
+        return False
+
+
 @click.command("status")
 def twofa_status():
     """Check 2FA status."""
@@ -13,19 +34,30 @@ def twofa_status():
 
 @click.command("setup")
 def twofa_setup():
-    """Initialize 2FA setup. Returns TOTP secret and QR URL."""
+    """Initialize 2FA setup. Shows QR code in terminal."""
     data = post("/security/2fa/setup")
     inner = data.get("data", data)
     secret = inner.get("secret", "")
     otpauth = inner.get("otpauthUrl", inner.get("url", ""))
-    if secret:
-        click.echo(f"Secret: {secret}")
+
     if otpauth:
-        click.echo(f"OTP URL: {otpauth}")
+        click.echo(click.style("── 2FA Setup ──", fg="cyan", bold=True))
+        click.echo()
+        click.echo("Scan this QR code with your authenticator app:")
+        if not _print_qr(otpauth):
+            click.echo()
+            click.echo("  (Install 'qrcode' for QR display: pip install qrcode)")
+            click.echo()
+    if secret:
+        click.echo(f"  Secret: {click.style(secret, fg='yellow', bold=True)}")
+    if otpauth:
+        click.echo(f"  OTP URL: {otpauth}")
     if not secret and not otpauth:
         print_item(data)
-    click.echo("\nScan the QR code or enter the secret in your authenticator app.")
-    click.echo("Then run: craft 2fa verify --code <6-digit-code>")
+
+    click.echo()
+    click.echo("Then verify with:")
+    click.echo(click.style("  craft 2fa verify --code <6-digit-code>", fg="cyan"))
 
 
 @click.command("verify")

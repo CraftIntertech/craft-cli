@@ -68,7 +68,8 @@ def vm_create(name, hostname, node_id, os_template_id, root_password, plan_id,
     if interactive:
         from craft.interactive import (
             confirm, input_custom_specs, input_text,
-            select_billing_type, select_node, select_os_template,
+            select_billing_type, select_billing_type_with_price,
+            select_node, select_os_template,
             select_plan, select_ssh_keys,
         )
 
@@ -84,15 +85,19 @@ def vm_create(name, hostname, node_id, os_template_id, root_password, plan_id,
         if not os_template_id:
             os_template_id = select_os_template()
 
+        plan_data = None
         if not plan_id and not cpu:
-            selected = select_plan(node_id)
+            selected, plan_data = select_plan(node_id)
             if selected == "__custom__":
                 cpu, ram_mb, disk_gb = input_custom_specs()
             else:
                 plan_id = selected
 
         if not billing_type:
-            billing_type = select_billing_type()
+            if plan_data:
+                billing_type = select_billing_type_with_price(plan_data)
+            else:
+                billing_type = select_billing_type()
 
         if not ssh_keys:
             ssh_keys = select_ssh_keys()
@@ -100,15 +105,28 @@ def vm_create(name, hostname, node_id, os_template_id, root_password, plan_id,
         if not root_password:
             root_password = input_text("Root password (min 8 chars):", password=True)
 
+        # Build summary
         click.echo()
         click.echo(click.style("── Summary ──", fg="cyan"))
         click.echo(f"  Name:     {name}")
         click.echo(f"  Hostname: {hostname}")
-        click.echo(f"  Billing:  {billing_type}")
-        if plan_id:
+        if plan_data:
+            plan_name = plan_data.get("name", plan_id)
+            p_cpu = plan_data.get("cpu", "?")
+            p_ram = plan_data.get("ramMb", "?")
+            p_disk = plan_data.get("diskGb", "?")
+            click.echo(f"  Plan:     {plan_name} ({p_cpu} vCPU / {p_ram} MB / {p_disk} GB)")
+        elif plan_id:
             click.echo(f"  Plan:     {plan_id}")
         if cpu:
             click.echo(f"  Specs:    {cpu} vCPU / {ram_mb} MB / {disk_gb} GB")
+        click.echo(f"  Billing:  {billing_type}")
+        # Show price for selected billing type
+        if plan_data:
+            price_key = f"price{billing_type.capitalize()}"
+            price = plan_data.get(price_key)
+            if price is not None:
+                click.echo(click.style(f"  Price:    ฿{price}/{billing_type}", fg="yellow"))
         click.echo()
 
         if not confirm("Create this VM?"):
@@ -139,7 +157,7 @@ def vm_create(name, hostname, node_id, os_template_id, root_password, plan_id,
     if ssh_keys:
         body["sshKeys"] = ssh_keys
 
-    data = post("/vms", body)
+    data = post("/vms", body, timeout=120)
     print_success("VM created.")
     print_item(data)
 
@@ -176,7 +194,7 @@ def vm_start(vm_id):
     if not vm_id:
         from craft.interactive import select_vm
         vm_id = select_vm("Select VM to start")
-    post(f"/vms/{vm_id}/start")
+    post(f"/vms/{vm_id}/start", timeout=120)
     print_success(f"VM {vm_id} started.")
 
 
@@ -187,7 +205,7 @@ def vm_stop(vm_id):
     if not vm_id:
         from craft.interactive import select_vm
         vm_id = select_vm("Select VM to stop")
-    post(f"/vms/{vm_id}/stop")
+    post(f"/vms/{vm_id}/stop", timeout=120)
     print_success(f"VM {vm_id} stopped.")
 
 
@@ -198,7 +216,7 @@ def vm_reboot(vm_id):
     if not vm_id:
         from craft.interactive import select_vm
         vm_id = select_vm("Select VM to reboot")
-    post(f"/vms/{vm_id}/reboot")
+    post(f"/vms/{vm_id}/reboot", timeout=120)
     print_success(f"VM {vm_id} rebooted.")
 
 

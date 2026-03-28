@@ -6,7 +6,7 @@ import requests
 from craft.config import get_base_url, get_token
 
 
-def api_request(method, path, json_data=None, params=None, auth_required=True):
+def api_request(method, path, json_data=None, params=None, auth_required=True, timeout=30):
     """Make an API request and return the JSON response."""
     base_url = get_base_url()
     url = f"{base_url}{path}"
@@ -21,7 +21,7 @@ def api_request(method, path, json_data=None, params=None, auth_required=True):
 
     try:
         resp = requests.request(
-            method, url, json=json_data, params=params, headers=headers, timeout=30
+            method, url, json=json_data, params=params, headers=headers, timeout=timeout
         )
     except requests.ConnectionError:
         click.echo("Error: Could not connect to API server.", err=True)
@@ -84,8 +84,8 @@ def get(path, params=None, auth=True):
     return api_request("GET", path, params=params, auth_required=auth)
 
 
-def post(path, data=None, auth=True):
-    return api_request("POST", path, json_data=data, auth_required=auth)
+def post(path, data=None, auth=True, timeout=30):
+    return api_request("POST", path, json_data=data, auth_required=auth, timeout=timeout)
 
 
 def put(path, data=None, auth=True):

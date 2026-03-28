@@ -18,88 +18,33 @@ ok()    { printf "${GREEN}[✓]${NC} %s\n" "$1"; }
 warn()  { printf "${YELLOW}[!]${NC} %s\n" "$1"; }
 fail()  { printf "${RED}[✗]${NC} %s\n" "$1"; exit 1; }
 
+# --- Check required tools ---
+command -v git &>/dev/null || fail "git is required. Install: sudo apt install git"
+command -v go  &>/dev/null || fail "Go is required. Install from https://go.dev/dl/"
+
 # --- Detect platform ---
-OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-ARCH="$(uname -m)"
+info "Detected platform: $(uname -s)/$(uname -m)"
 
-case "$OS" in
-    linux)  OS="linux" ;;
-    darwin) OS="darwin" ;;
-    *)      fail "Unsupported OS: $OS" ;;
-esac
+# --- Clone and build ---
+TMPDIR=$(mktemp -d)
+trap "rm -rf $TMPDIR" EXIT
 
-case "$ARCH" in
-    x86_64|amd64)   ARCH="amd64" ;;
-    aarch64|arm64)   ARCH="arm64" ;;
-    *)               fail "Unsupported architecture: $ARCH" ;;
-esac
+info "Cloning craft-cli..."
+git clone -q --depth 1 "$REPO_URL" "$TMPDIR/craft-cli"
 
-BINARY="craft-${OS}-${ARCH}"
-info "Detected platform: ${OS}/${ARCH}"
+VERSION=$(cat "$TMPDIR/craft-cli/VERSION" 2>/dev/null || echo "dev")
+info "Version: v${VERSION}"
 
-# --- Check tools ---
-if ! command -v curl &>/dev/null; then
-    fail "curl is required. Install: sudo apt install curl"
-fi
-
-# --- Get version ---
-info "Checking latest version..."
-VERSION=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/main/VERSION" 2>/dev/null || echo "")
-if [ -z "$VERSION" ]; then
-    fail "Could not determine latest version"
-fi
-info "Latest version: v${VERSION}"
-
-# --- Prepare ---
+info "Building..."
+cd "$TMPDIR/craft-cli"
 mkdir -p "$BIN_DIR"
 TARGET="$BIN_DIR/$APP_NAME"
-INSTALLED=false
+go build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
+chmod +x "$TARGET"
+ok "Built craft binary"
 
-# --- Try 1: Download pre-built binary from GitHub Release ---
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/${BINARY}"
-info "Trying to download pre-built binary..."
-if curl -fsSL "$DOWNLOAD_URL" -o "$TARGET" 2>/dev/null; then
-    chmod +x "$TARGET"
-    ok "Downloaded pre-built binary"
-    INSTALLED=true
-else
-    warn "No pre-built binary available (release not published yet)"
-fi
-
-# --- Try 2: Build from source ---
-if [ "$INSTALLED" = false ]; then
-    if ! command -v go &>/dev/null; then
-        if ! command -v git &>/dev/null; then
-            fail "No pre-built binary available and neither Go nor git is installed.\nInstall Go from https://go.dev/dl/ or wait for a release at https://github.com/$REPO/releases"
-        fi
-        fail "No pre-built binary available. Install Go to build from source: https://go.dev/dl/"
-    fi
-
-    if ! command -v git &>/dev/null; then
-        fail "git is required to build from source. Install: sudo apt install git"
-    fi
-
-    info "Building from source (requires Go)..."
-    TMPDIR=$(mktemp -d)
-    trap "rm -rf $TMPDIR" EXIT
-
-    git clone -q --depth 1 "$REPO_URL" "$TMPDIR/craft-cli"
-    info "Compiling..."
-    cd "$TMPDIR/craft-cli"
-    go build -ldflags "-s -w -X github.com/$REPO/cmd.Version=${VERSION}" -o "$TARGET" .
-    chmod +x "$TARGET"
-    ok "Built from source"
-    INSTALLED=true
-fi
-
-if [ "$INSTALLED" = false ]; then
-    fail "Installation failed"
-fi
-
-# --- Verify binary works ---
-if ! "$TARGET" version &>/dev/null; then
-    fail "Binary installed but does not execute. Check your platform."
-fi
+# --- Verify ---
+"$TARGET" version &>/dev/null || fail "Binary does not run. Check your Go installation."
 
 # --- Remove old Python installation if present ---
 OLD_INSTALL="$HOME/.local/share/craft-cli"
@@ -117,10 +62,8 @@ fi
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     warn "$BIN_DIR is not in your PATH"
     echo ""
-    echo "  Add to ~/.bashrc or ~/.zshrc:"
-    echo ""
+    printf "  Add to ~/.bashrc or ~/.zshrc:\n"
     printf "    ${CYAN}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}\n"
-    echo ""
     printf "  Then: ${CYAN}source ~/.bashrc${NC}\n"
     echo ""
 fi
@@ -131,11 +74,8 @@ printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━�
 printf "${GREEN}  craft-cli v${VERSION} installed!${NC}\n"
 printf "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 echo ""
-echo "  No Python required — single binary!"
-echo ""
 printf "    ${CYAN}craft --help${NC}              # See all commands\n"
 printf "    ${CYAN}craft login <token>${NC}      # Authenticate\n"
 printf "    ${CYAN}craft vm list${NC}             # List your VMs\n"
-echo ""
 printf "    ${CYAN}craft update${NC}              # Update to latest\n"
 echo ""

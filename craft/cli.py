@@ -342,6 +342,8 @@ cli.add_command(test_api)
 @cli.command()
 def update():
     """Update craft-cli to the latest version."""
+    import platform
+
     install_dir = Path.home() / ".local" / "share" / "craft-cli"
     if not install_dir.exists():
         click.echo("Error: Installation not found at ~/.local/share/craft-cli", err=True)
@@ -370,6 +372,51 @@ def update():
             return
 
         click.echo(f"New version available: {old_version} → {new_version}")
+
+        # v2.0+ is a Go rewrite — cannot pip install, need to download binary
+        major = int(new_version.split(".")[0])
+        if major >= 2:
+            click.echo()
+            click.echo(click.style("v2.0+ is rewritten in Go — single binary, no Python needed!", fg="cyan", bold=True))
+            click.echo()
+
+            # Detect platform
+            system = platform.system().lower()  # linux, darwin, windows
+            machine = platform.machine().lower()
+            if machine in ("x86_64", "amd64"):
+                arch = "amd64"
+            elif machine in ("aarch64", "arm64"):
+                arch = "arm64"
+            else:
+                arch = machine
+
+            binary = f"craft-{system}-{arch}"
+            if system == "windows":
+                binary += ".exe"
+
+            url = f"https://github.com/CraftIntertech/craft-cli/releases/download/v{new_version}/{binary}"
+            bin_path = Path.home() / ".local" / "bin" / "craft"
+
+            click.echo(f"Downloading {binary}...")
+            try:
+                import urllib.request
+                urllib.request.urlretrieve(url, str(bin_path))
+                bin_path.chmod(0o755)
+                click.echo(click.style(f"Updated: v{old_version} → v{new_version} (Go binary)", fg="green"))
+                click.echo(f"Installed to: {bin_path}")
+                click.echo()
+                click.echo("You can remove the old Python installation:")
+                click.echo(f"  rm -rf {install_dir}")
+                return
+            except Exception as e:
+                click.echo(click.style(f"Auto-download failed: {e}", fg="yellow"), err=True)
+                click.echo()
+                click.echo("Install manually:")
+                click.echo(f"  curl -fsSL {url} -o {bin_path}")
+                click.echo(f"  chmod +x {bin_path}")
+                click.echo()
+                click.echo(f"Or visit: https://github.com/CraftIntertech/craft-cli/releases/tag/v{new_version}")
+                return
 
         subprocess.run(
             ["git", "-C", str(install_dir), "reset", "--hard", "origin/main"],

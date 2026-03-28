@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.0.0 (2026-03-28)
+
+### Breaking Changes
+- **Rewritten in Go** — single binary, no Python/pip required
+- Cross-platform: Linux (amd64/arm64), macOS (Intel/Apple Silicon), Windows
+- Binary size: ~9MB (was ~50MB+ with Python + dependencies)
+- Same commands, same API, same interactive prompts — just faster
+
+### Platforms
+- `craft-linux-amd64` — Linux x86_64
+- `craft-linux-arm64` — Linux ARM64
+- `craft-darwin-amd64` — macOS Intel
+- `craft-darwin-arm64` — macOS Apple Silicon (M1/M2/M3)
+- `craft-windows-amd64.exe` — Windows x64
+
+### Install
+```bash
+# Linux/macOS
+curl -fsSL https://github.com/CraftIntertech/craft-cli/releases/download/v2.0.0/craft-linux-amd64 -o craft
+chmod +x craft && sudo mv craft /usr/local/bin/
+```
+
+---
+
 ## v1.3.2 (2026-03-28)
 
 ### Improvements

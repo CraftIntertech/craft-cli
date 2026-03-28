@@ -15,7 +15,6 @@ def _extract_list(data, *keys):
         for key in keys:
             if key in inner and isinstance(inner[key], list):
                 return inner[key]
-        # try common keys
         for key in ("items", "data"):
             if key in inner and isinstance(inner[key], list):
                 return inner[key]
@@ -55,12 +54,11 @@ def select_node(label="Select node"):
         display = f"{name} ({location})" if location else name
         choices.append({"name": display, "value": n.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_os_template(label="Select OS template"):
@@ -79,12 +77,11 @@ def select_os_template(label="Select OS template"):
         name = t.get("name", t.get("label", ""))
         choices.append({"name": name, "value": t.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_plan(node_id=None, label="Select plan"):
@@ -108,26 +105,23 @@ def select_plan(node_id=None, label="Select plan"):
             display += f" (฿{price}/mo)"
         choices.append({"name": display, "value": p.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def input_custom_specs():
     """Prompt for custom CPU, RAM, disk."""
     _require_inquirer()
     from InquirerPy import inquirer
-    from InquirerPy.validator import NumberValidator
 
     cpu = int(inquirer.number(
         message="CPU cores (1-32):",
         min_allowed=1,
         max_allowed=32,
         default=1,
-        mouse_support=True,
     ).execute())
 
     ram = int(inquirer.number(
@@ -135,7 +129,6 @@ def input_custom_specs():
         min_allowed=512,
         max_allowed=131072,
         default=1024,
-        mouse_support=True,
     ).execute())
 
     disk = int(inquirer.number(
@@ -143,7 +136,6 @@ def input_custom_specs():
         min_allowed=10,
         max_allowed=2000,
         default=20,
-        mouse_support=True,
     ).execute())
 
     return cpu, ram, disk
@@ -170,12 +162,11 @@ def select_vm(label="Select VM"):
             display += f" — {ip}"
         choices.append({"name": display, "value": vm.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_ssh_keys(label="Select SSH keys"):
@@ -198,7 +189,7 @@ def select_ssh_keys(label="Select SSH keys"):
     result = inquirer.checkbox(
         message=label,
         choices=choices,
-        mouse_support=True,
+
         instruction="(Space to select, Enter to confirm, skip with Enter)",
     ).execute()
     return ",".join(result) if result else None
@@ -209,7 +200,7 @@ def select_billing_type(label="Billing type"):
     _require_inquirer()
     from InquirerPy import inquirer
 
-    result = inquirer.select(
+    return inquirer.select(
         message=label,
         choices=[
             {"name": "Daily", "value": "daily"},
@@ -218,9 +209,8 @@ def select_billing_type(label="Billing type"):
             {"name": "Yearly", "value": "yearly"},
         ],
         default="monthly",
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_hosting(label="Select hosting account"):
@@ -242,12 +232,11 @@ def select_hosting(label="Select hosting account"):
         display = f"{name} — {domain} ({status})"
         choices.append({"name": display, "value": h.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_hosting_node(label="Select hosting node"):
@@ -266,12 +255,11 @@ def select_hosting_node(label="Select hosting node"):
         name = n.get("name", n.get("hostname", ""))
         choices.append({"name": name, "value": n.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_hosting_plan(label="Select hosting plan"):
@@ -292,12 +280,11 @@ def select_hosting_plan(label="Select hosting plan"):
         display = f"{name} (฿{price}/mo)" if price else name
         choices.append({"name": display, "value": p.get("id", "")})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_snapshot(vm_id, label="Select snapshot"):
@@ -323,12 +310,11 @@ def select_snapshot(vm_id, label="Select snapshot"):
             display += f" ({created})"
         choices.append({"name": display, "value": sid})
 
-    result = inquirer.fuzzy(
+    return inquirer.fuzzy(
         message=label,
         choices=choices,
-        mouse_support=True,
+
     ).execute()
-    return result
 
 
 def select_firewall_action():
@@ -342,13 +328,13 @@ def select_firewall_action():
             {"name": "Inbound (in)", "value": "in"},
             {"name": "Outbound (out)", "value": "out"},
         ],
-        mouse_support=True,
+
     ).execute()
 
     action = inquirer.select(
         message="Action",
         choices=["ACCEPT", "DROP", "REJECT"],
-        mouse_support=True,
+
     ).execute()
 
     proto = inquirer.select(
@@ -359,22 +345,19 @@ def select_firewall_action():
             {"name": "ICMP", "value": "icmp"},
             {"name": "Any (skip)", "value": ""},
         ],
-        mouse_support=True,
+
     ).execute()
 
     dport = inquirer.text(
         message="Destination port (e.g. 80, 443, 8000:9000 — leave empty for any):",
-        mouse_support=True,
     ).execute().strip()
 
     source = inquirer.text(
         message="Source CIDR (e.g. 0.0.0.0/0 — leave empty for any):",
-        mouse_support=True,
     ).execute().strip()
 
     comment = inquirer.text(
         message="Comment (optional):",
-        mouse_support=True,
     ).execute().strip()
 
     return {
@@ -388,22 +371,21 @@ def select_firewall_action():
 
 
 def confirm(message, default=False):
-    """Confirm prompt with mouse support."""
+    """Confirm prompt."""
     _require_inquirer()
     from InquirerPy import inquirer
 
     return inquirer.confirm(
         message=message,
         default=default,
-        mouse_support=True,
     ).execute()
 
 
 def input_text(message, default="", password=False):
-    """Text input with mouse support."""
+    """Text input prompt."""
     _require_inquirer()
     from InquirerPy import inquirer
 
     if password:
-        return inquirer.secret(message=message, mouse_support=True).execute()
-    return inquirer.text(message=message, default=default, mouse_support=True).execute()
+        return inquirer.secret(message=message).execute()
+    return inquirer.text(message=message, default=default).execute()

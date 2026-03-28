@@ -148,9 +148,7 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update the CLI to the latest version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Checking for updates...")
-		fmt.Printf("Current version: %s\n", Version)
-		fmt.Println("To update, download the latest release from https://github.com/CraftIntertech/craft-cli/releases")
+		runUpdate()
 	},
 }
 
